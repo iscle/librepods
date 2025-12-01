@@ -16,9 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-@file:Suppress("DEPRECATION")
-
 package me.kavishdevar.librepods.services
 
 import android.Manifest
@@ -58,7 +55,6 @@ import android.provider.Settings
 import android.telecom.TelecomManager
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -89,8 +85,6 @@ import me.kavishdevar.librepods.constants.isHeadTrackingData
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.AACPManager.Companion.StemPressType
 import me.kavishdevar.librepods.utils.ATTManager
-import me.kavishdevar.librepods.utils.AirPodsInstance
-import me.kavishdevar.librepods.utils.AirPodsModels
 import me.kavishdevar.librepods.utils.BLEManager
 import me.kavishdevar.librepods.utils.BluetoothConnectionManager
 import me.kavishdevar.librepods.utils.CrossDevice
@@ -123,38 +117,26 @@ import me.kavishdevar.librepods.utils.SystemApisUtils.METADATA_UNTETHERED_RIGHT_
 import me.kavishdevar.librepods.widgets.BatteryWidget
 import me.kavishdevar.librepods.widgets.NoiseControlWidget
 import org.lsposed.hiddenapibypass.HiddenApiBypass
+import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
-
-private const val TAG = "AirPodsService"
 
 object ServiceManager {
-    @ExperimentalEncodingApi
     private var service: AirPodsService? = null
 
-    @ExperimentalEncodingApi
     @Synchronized
     fun getService(): AirPodsService? {
         return service
     }
-
-    @ExperimentalEncodingApi
-    @Synchronized
-    fun setService(service: AirPodsService?) {
-        this.service = service
-    }
 }
 
-// @Suppress("unused")
-@ExperimentalEncodingApi
 class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeListener {
     var macAddress = ""
     var localMac = ""
     lateinit var aacpManager: AACPManager
     var attManager: ATTManager? = null
-    var airpodsInstance: AirPodsInstance? = null
+//    var airpodsInstance: AirPodsInstance? = null
     var cameraActive = false
     private var disconnectedBecauseReversed = false
     private var otherDeviceTookOver = false
@@ -167,7 +149,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         var headGestures: Boolean = true,
         var disconnectWhenNotWearing: Boolean = false,
         var conversationalAwarenessVolume: Int = 43,
-        var textColor: Long = -1L,
         var qsClickBehavior: String = "cycle",
         var bleOnlyMode: Boolean = false,
 
@@ -244,17 +225,17 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 sharedPreferences.edit {
                     putString("mac_address", macAddress)
                 }
-                Log.d(TAG, "BLE-only mode: stored MAC address ${device.address}")
+                Timber.d("BLE-only mode: stored MAC address ${device.address}")
             }
 
             if (device.connectionState == "Disconnected" && !config.bleOnlyMode) {
-                Log.d(TAG, "Seems no device has taken over, we will.")
+                Timber.d("Seems no device has taken over, we will.")
                 val bluetoothManager = getSystemService(BluetoothManager::class.java)
                 val bluetoothDevice = bluetoothManager.adapter.getRemoteDevice(sharedPreferences.getString(
                     "mac_address", "") ?: "")
                 connectToSocket(bluetoothDevice)
             }
-            Log.d(TAG, "Device status changed")
+            Timber.d("Device status changed")
             if (isConnectedLocally) return
             val leftLevel = bleManager.getMostRecentStatus()?.leftBattery?: 0
             val rightLevel = bleManager.getMostRecentStatus()?.rightBattery?: 0
@@ -275,14 +256,14 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
 
         override fun onBroadcastFromNewAddress(device: BLEManager.AirPodsStatus) {
-            Log.d(TAG, "New address detected")
+            Timber.d("New address detected")
         }
 
         override fun onLidStateChanged(
             lidOpen: Boolean,
         ) {
             if (lidOpen) {
-                Log.d(TAG, "Lid opened")
+                Timber.d("Lid opened")
                 showPopup(
                     this@AirPodsService,
                     getSharedPreferences("settings", MODE_PRIVATE).getString("name", "AirPods Pro") ?: "AirPods"
@@ -305,7 +286,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 )
                 sendBatteryBroadcast()
             } else {
-                Log.d(TAG, "Lid closed")
+                Timber.d("Lid closed")
             }
         }
 
@@ -314,11 +295,11 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             leftInEar: Boolean,
             rightInEar: Boolean
         ) {
-            Log.d(TAG, "Ear state changed - Left: $leftInEar, Right: $rightInEar")
+            Timber.d("Ear state changed - Left: $leftInEar, Right: $rightInEar")
 
             // In BLE-only mode, ear detection is purely based on BLE data
             if (config.bleOnlyMode) {
-                Log.d(TAG, "BLE-only mode: ear detection from BLE data")
+                Timber.d("BLE-only mode: ear detection from BLE data")
             }
         }
 
@@ -340,11 +321,11 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 caseCharging = caseCharging == true
             )
             updateBattery()
-            Log.d(TAG, "Battery changed")
+            Timber.d("Battery changed")
         }
 
         override fun onDeviceDisappeared() {
-            Log.d(TAG, "All disappeared")
+            Timber.d("All disappeared")
             updateNotificationContent(
                 false
             )
@@ -372,7 +353,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         val output = process.inputStream.bufferedReader().use { it.readLine() }
         localMac = output.trim()
 
-        ServiceManager.setService(this)
         startForegroundNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             initGestureDetector()
@@ -380,7 +360,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             gestureDetector = null
             config.headGestures = false
             sharedPreferences.edit { putBoolean("head_gestures", false) }
-            Log.d(TAG, "Head gestures disabled as device is running Android 9 or below")
+            Timber.d("Head gestures disabled as device is running Android 9 or below")
         }
 
         bleManager = BLEManager(this)
@@ -452,8 +432,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     "conversational_awareness_volume",
                     43
                 )
-
-                if (!contains("textColor")) putLong("textColor", -1L)
 
                 if (!contains("qs_click_behavior")) putString("qs_click_behavior", "cycle")
                 if (!contains("name")) putString("name", "AirPods")
@@ -535,7 +513,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                             AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE.value,
                             nextMode
                         )
-                        Log.d(TAG, "Cycling ANC mode from $currentMode to $nextMode (offListeningMode: $allowOffMode)")
+                        Timber.d("Cycling ANC mode from $currentMode to $nextMode (offListeningMode: $allowOffMode)")
                     }
                 }
             }
@@ -556,10 +534,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 MODE_PRIVATE
             )
         )
-        Log.d(TAG, "Initializing CrossDevice")
+        Timber.d("Initializing CrossDevice")
         CoroutineScope(Dispatchers.IO).launch {
             CrossDevice.init(this@AirPodsService)
-            Log.d(TAG, "CrossDevice initialized")
+            Timber.d("CrossDevice initialized")
         }
 
         sharedPreferences = getSharedPreferences("settings", MODE_PRIVATE)
@@ -605,13 +583,12 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             batteryChangedIntentFilter.addAction(AirPodsNotifications.DISCONNECT_RECEIVERS)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(
-                    BatteryChangedIntentReceiver,
+                    batteryChangedReceiver,
                     batteryChangedIntentFilter,
                     RECEIVER_EXPORTED
                 )
             } else {
-                @Suppress("UnspecifiedRegisterReceiverFlag")
-                registerReceiver(BatteryChangedIntentReceiver, batteryChangedIntentFilter)
+                registerReceiver(batteryChangedReceiver, batteryChangedIntentFilter)
             }
         }
         val serviceIntentFilter = IntentFilter().apply {
@@ -641,13 +618,13 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         sharedPreferences.edit { putString("name", config.deviceName) }
                     }
 
-                    Log.d("AirPodsCrossDevice", CrossDevice.isAvailable.toString())
+                    Timber.d(CrossDevice.isAvailable.toString())
                     if (!CrossDevice.isAvailable) {
-                        Log.d(TAG, "${config.deviceName} connected")
+                        Timber.d("${config.deviceName} connected")
                         CoroutineScope(Dispatchers.IO).launch {
                             connectToSocket(device!!)
                         }
-                        Log.d(TAG, "Setting metadata")
+                        Timber.d("Setting metadata")
                         setMetadatas(device!!)
                         isConnectedLocally = true
                         macAddress = device!!.address
@@ -756,7 +733,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     @Suppress("unused")
     fun cameraOpened() {
-        Log.d(TAG, "Camera opened, gonna handle stem presses and take action if enabled")
+        Timber.d("Camera opened, gonna handle stem presses and take action if enabled")
         cameraActive = true
         setupStemActions()
     }
@@ -790,7 +767,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         val longPressCustomized = isCustomAction(config.leftLongPressAction, longPressDefault) ||
             isCustomAction(config.rightLongPressAction, longPressDefault) ||
             (cameraActive && config.cameraAction == StemPressType.LONG_PRESS)
-        Log.d(TAG, "Setting up stem actions: " +
+        Timber.d("Setting up stem actions: " +
             "Single Press Customized: $singlePressCustomized, " +
             "Double Press Customized: $doublePressCustomized, " +
             "Triple Press Customized: $triplePressCustomized, " +
@@ -803,7 +780,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         )
     }
 
-    @ExperimentalEncodingApi
     private fun initializeAACPManagerCallback() {
         aacpManager.setPacketCallback(object : AACPManager.PacketCallback {
             @SuppressLint("MissingPermission")
@@ -823,8 +799,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 CrossDevice.batteryBytes = batteryInfo
 
                 for (battery in batteryNotification.getBattery()) {
-                    Log.d(
-                        "AirPodsParser",
+                    Timber.d(
                         "${battery.getComponentName()}: ${battery.getStatusName()} at ${battery.level}% "
                     )
                 }
@@ -844,8 +819,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     bytes[1] = list[1]
                     putExtra("data", bytes)
                 })
-                Log.d(
-                    "AirPodsParser",
+                Timber.d(
                     "Ear Detection: ${earDetectionNotification.status[0]} ${earDetectionNotification.status[1]}"
                 )
                 processEarDetectionChange(earDetection)
@@ -863,8 +837,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     MediaController.stopSpeaking()
                 }
 
-                Log.d(
-                    "AirPodsParser",
+                Timber.d(
                     "Conversation Awareness: ${conversationAwarenessNotification.status}"
                 )
             }
@@ -884,7 +857,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     Handler(Looper.getMainLooper()).postDelayed({
                         MediaController.recentlyLostOwnership = false
                     }, 3000)
-                    Log.d(TAG, "ownership lost")
+                    Timber.d("ownership lost")
                     MediaController.sendPause()
                     MediaController.pausedForOtherDevice = true
                     otherDeviceTookOver = true
@@ -900,7 +873,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 // handling reverse is a problem because we'd have to disconnect the audio, but there's no option connect audio again natively, so notification would have to be changed. I wish there was a way to just "change the audio output device".
                 // (20 minutes later) i've done it nonetheless :]
                 val senderName = aacpManager.connectedDevices.find { it.mac == sender }?.type ?: "Other device"
-                Log.d(TAG, "other device has hijacked the connection, reasonReverseTapped: $reasonReverseTapped")
+                Timber.d("other device has hijacked the connection, reasonReverseTapped: $reasonReverseTapped")
                 aacpManager.sendControlCommand(
                     AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION.value,
                     byteArrayOf(0x00)
@@ -911,7 +884,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     device
                 )
                 if (reasonReverseTapped) {
-                    Log.d(TAG, "reverse tapped, disconnecting audio")
+                    Timber.d("reverse tapped, disconnecting audio")
                     disconnectedBecauseReversed = true
                     disconnectAudio(this@AirPodsService, device)
                     showIsland(
@@ -946,8 +919,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             }
 
             override fun onDeviceInformationReceived(deviceInformation: AACPManager.Companion.AirPodsInformation) {
-                Log.d(
-                    "AirPodsParser",
+                Timber.d(
                     "Device Information: name: ${deviceInformation.name}, modelNumber: ${deviceInformation.modelNumber}, manufacturer: ${deviceInformation.manufacturer}, serialNumber: ${deviceInformation.serialNumber}, version1: ${deviceInformation.version1}, version2: ${deviceInformation.version2}, hardwareRevision: ${deviceInformation.hardwareRevision}, updaterIdentifier: ${deviceInformation.updaterIdentifier}, leftSerialNumber: ${deviceInformation.leftSerialNumber}, rightSerialNumber: ${deviceInformation.rightSerialNumber}, version3: ${deviceInformation.version3}"
                 )
                 // Store in SharedPreferences
@@ -977,22 +949,22 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 config.airpodsHardwareRevision = deviceInformation.hardwareRevision
                 config.airpodsUpdaterIdentifier = deviceInformation.updaterIdentifier
 
-                val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
-                if (model != null) {
-                    airpodsInstance = AirPodsInstance(
-                        name = config.airpodsName,
-                        model = model,
-                        actualModelNumber = config.airpodsModelNumber,
-                        serialNumber = config.airpodsSerialNumber,
-                        leftSerialNumber = config.airpodsLeftSerialNumber,
-                        rightSerialNumber = config.airpodsRightSerialNumber,
-                        version1 = config.airpodsVersion1,
-                        version2 = config.airpodsVersion2,
-                        version3 = config.airpodsVersion3,
-                        aacpManager = aacpManager,
-                        attManager = attManager
-                    )
-                }
+//                val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
+//                if (model != null) {
+//                    airpodsInstance = AirPodsInstance(
+//                        name = config.airpodsName,
+//                        model = model,
+//                        actualModelNumber = config.airpodsModelNumber,
+//                        serialNumber = config.airpodsSerialNumber,
+//                        leftSerialNumber = config.airpodsLeftSerialNumber,
+//                        rightSerialNumber = config.airpodsRightSerialNumber,
+//                        version1 = config.airpodsVersion1,
+//                        version2 = config.airpodsVersion2,
+//                        version3 = config.airpodsVersion3,
+//                        aacpManager = aacpManager,
+//                        attManager = attManager
+//                    )
+//                }
             }
 
             @SuppressLint("NewApi")
@@ -1005,10 +977,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
             override fun onProximityKeysReceived(proximityKeys: ByteArray) {
                 val keys = aacpManager.parseProximityKeysResponse(proximityKeys)
-                Log.d("AirPodsParser", "Proximity keys: $keys")
+                Timber.d("Proximity keys: $keys")
                 sharedPreferences.edit {
                     for (key in keys) {
-                        Log.d("AirPodsParser", "Proximity key: ${key.key.name} = ${key.value}")
+                        Timber.d("Proximity key: ${key.key.name} = ${key.value}")
                         putString(key.key.name, Base64.encode(key.value))
                     }
                 }
@@ -1017,25 +989,25 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             override fun onStemPressReceived(stemPress: ByteArray) {
                 val (stemPressType, bud) = aacpManager.parseStemPressResponse(stemPress)
 
-                Log.d("AirPodsParser", "Stem press received: $stemPressType on $bud, cameraActive: $cameraActive, cameraAction: ${config.cameraAction}")
+                Timber.d("Stem press received: $stemPressType on $bud, cameraActive: $cameraActive, cameraAction: ${config.cameraAction}")
                 if (cameraActive && config.cameraAction != null && stemPressType == config.cameraAction) {
                     Runtime.getRuntime().exec(arrayOf("su", "-c", "input keyevent 27"))
                 } else {
                     val action = getActionFor(bud, stemPressType)
-                    Log.d("AirPodsParser", "$bud $stemPressType action: $action")
+                    Timber.d("$bud $stemPressType action: $action")
                     action?.let { executeStemAction(it) }
                 }
             }
             override fun onAudioSourceReceived(audioSource: ByteArray) {
-                Log.d("AirPodsParser", "Audio source changed mac: ${aacpManager.audioSource?.mac}, type: ${aacpManager.audioSource?.type?.name}")
+                Timber.d("Audio source changed mac: ${aacpManager.audioSource?.mac}, type: ${aacpManager.audioSource?.type?.name}")
                 if (aacpManager.audioSource?.type != AACPManager.Companion.AudioSourceType.NONE && aacpManager.audioSource?.mac != localMac) {
-                    Log.d("AirPodsParser", "Audio source is another device, better to give up aacp control")
+                    Timber.d("Audio source is another device, better to give up aacp control")
                     aacpManager.sendControlCommand(
                         AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION.value,
                         byteArrayOf(0x00)
                     )
                     // this also means that the other device has start playing the audio, and if that's true, we can again start listening for audio config changes
-//                    Log.d(TAG, "Another device started playing audio, listening for audio config changes again")
+//                    Timber.d("Another device started playing audio, listening for audio config changes again")
 //                    MediaController.pausedForOtherDevice = false
 // future me: what the heck is this? this just means it will not be taking over again if audio source doesn't change???
                 }
@@ -1043,7 +1015,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
             override fun onConnectedDevicesReceived(connectedDevices: List<AACPManager.Companion.ConnectedDevice>) {
                 for (device in connectedDevices) {
-                    Log.d("AirPodsParser", "Connected device: ${device.mac}, info1: ${device.info1}, info2: ${device.info2})")
+                    Timber.d("Connected device: ${device.mac}, info1: ${device.info1}, info2: ${device.info2})")
                 }
                 val newDevices = connectedDevices.filter { newDevice ->
                     val notInOld = aacpManager.oldConnectedDevices.none { oldDevice -> oldDevice.mac == newDevice.mac }
@@ -1052,14 +1024,14 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 }
 
                 for (device in newDevices) {
-                    Log.d("AirPodsParser", "New connected device: ${device.mac}, info1: ${device.info1}, info2: ${device.info2})")
-                    Log.d(TAG, "Sending new Tipi packet for device ${device.mac}, and sending media info to the device")
+                    Timber.d("New connected device: ${device.mac}, info1: ${device.info1}, info2: ${device.info2})")
+                    Timber.d("Sending new Tipi packet for device ${device.mac}, and sending media info to the device")
                     aacpManager.sendMediaInformationNewDevice(selfMacAddress = localMac, targetMacAddress = device.mac)
                     aacpManager.sendAddTiPiDevice(selfMacAddress = localMac, targetMacAddress = device.mac)
                 }
             }
             override fun onUnknownPacketReceived(packet: ByteArray) {
-                Log.d("AACPManager", "Unknown packet received: ${packet.joinToString(" ") { "%02X".format(it) }}")
+                Timber.d("Unknown packet received: ${packet.joinToString(" ") { "%02X".format(it) }}")
             }
         })
     }
@@ -1076,7 +1048,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     private fun executeStemAction(action: StemAction) {
         when (action) {
             StemAction.defaultActions[StemPressType.SINGLE_PRESS] -> {
-                Log.d("AirPodsParser", "Default single press action: Play/Pause, not taking action.")
+                Timber.d("Default single press action: Play/Pause, not taking action.")
             }
             StemAction.PLAY_PAUSE -> MediaController.sendPlayPause()
             StemAction.PREVIOUS_TRACK -> MediaController.sendPreviousTrack()
@@ -1088,11 +1060,11 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     }
                     startActivity(intent)
                 } else {
-                    Log.w("AirPodsParser", "Digital Assistant action is not supported on this Android version.")
+                    Timber.w("Digital Assistant action is not supported on this Android version.")
                 }
             }
             StemAction.CYCLE_NOISE_CONTROL_MODES -> {
-                Log.d("AirPodsParser", "Cycling noise control modes")
+                Timber.d("Cycling noise control modes")
                 sendBroadcast(Intent("me.kavishdevar.librepods.SET_ANC_MODE"))
             }
         }
@@ -1137,16 +1109,16 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             }
 
             if (inEarData.contains(false) && newInEarData == listOf(true, true)) {
-                Log.d("AirPodsParser", "User put in both AirPods from just one.")
+                Timber.d("User put in both AirPods from just one.")
                 MediaController.userPlayedTheMedia = false
             }
 
             if (newInEarData.contains(false) && inEarData == listOf(true, true)) {
-                Log.d("AirPodsParser", "User took one of two out.")
+                Timber.d("User took one of two out.")
                 MediaController.userPlayedTheMedia = false
             }
 
-            Log.d("AirPodsParser", "inEarData: ${inEarData.sorted()}, newInEarData: ${newInEarData.sorted()}")
+            Timber.d("inEarData: ${inEarData.sorted()}, newInEarData: ${newInEarData.sorted()}")
 
             if (newInEarData.sorted() != inEarData.sorted()) {
                 if (inEar) {
@@ -1169,13 +1141,13 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     val previousState = intent.getIntExtra(BluetoothProfile.EXTRA_PREVIOUS_STATE, BluetoothProfile.STATE_DISCONNECTED)
                     val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
 
-                    Log.d("MediaController", "A2DP state changed: $previousState -> $state for device: ${device?.address}")
+                    Timber.d("A2DP state changed: $previousState -> $state for device: ${device?.address}")
 
                     if (state == BluetoothProfile.STATE_CONNECTED &&
                         previousState != BluetoothProfile.STATE_CONNECTED &&
                         device?.address == this@AirPodsService.device?.address) {
 
-                        Log.d("MediaController", "A2DP connected, sending play command")
+                        Timber.d("A2DP connected, sending play command")
                         MediaController.sendPlay()
                         MediaController.iPausedTheMedia = false
 
@@ -1203,7 +1175,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             headGestures = sharedPreferences.getBoolean("head_gestures", true),
             disconnectWhenNotWearing = sharedPreferences.getBoolean("disconnect_when_not_wearing", false),
             conversationalAwarenessVolume = sharedPreferences.getInt("conversational_awareness_volume", 43),
-            textColor = sharedPreferences.getLong("textColor", -1L),
             qsClickBehavior = sharedPreferences.getString("qs_click_behavior", "cycle") ?: "cycle",
 
             // AirPods state-based takeover
@@ -1262,7 +1233,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             "head_gestures" -> config.headGestures = preferences.getBoolean(key, true)
             "disconnect_when_not_wearing" -> config.disconnectWhenNotWearing = preferences.getBoolean(key, false)
             "conversational_awareness_volume" -> config.conversationalAwarenessVolume = preferences.getInt(key, 43)
-            "textColor" -> config.textColor = preferences.getLong(key, -1L)
             "qs_click_behavior" -> config.qsClickBehavior = preferences.getString(key, "cycle") ?: "cycle"
 
             // AirPods state-based takeover
@@ -1404,7 +1374,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     var popupShown = false
     fun showPopup(service: Service, name: String) {
         if (!Settings.canDrawOverlays(service)) {
-            Log.d(TAG, "No permission for SYSTEM_ALERT_WINDOW")
+            Timber.d("No permission for SYSTEM_ALERT_WINDOW")
             return
         }
         if (popupShown) {
@@ -1419,9 +1389,9 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     var islandWindow: IslandWindow? = null
     @SuppressLint("MissingPermission")
     fun showIsland(service: Service, batteryPercentage: Int, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null) {
-        Log.d(TAG, "Showing island window")
+        Timber.d("Showing island window")
         if (!Settings.canDrawOverlays(service)) {
-            Log.d(TAG, "No permission for SYSTEM_ALERT_WINDOW")
+            Timber.d("No permission for SYSTEM_ALERT_WINDOW")
             return
         }
         CoroutineScope(Dispatchers.Main).launch {
@@ -1443,10 +1413,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     private lateinit var earReceiver: BroadcastReceiver
     var widgetMobileBatteryEnabled = false
 
-    object BatteryChangedIntentReceiver : BroadcastReceiver() {
+    private val batteryChangedReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
             if (intent.action == Intent.ACTION_BATTERY_CHANGED) {
-                ServiceManager.getService()?.updateBattery()
+                updateBattery()
             } else if (intent.action == AirPodsNotifications.DISCONNECT_RECEIVERS) {
                 try {
                     context?.unregisterReceiver(this)
@@ -2020,7 +1990,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 sendBroadcastAsUser(intent, UserHandle.getUserHandleForUid(-1))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send vendor-specific event: ${e.message}")
+            Timber.e("Failed to send vendor-specific event: ${e.message}")
         }
 
         // Broadcast battery level changes
@@ -2036,7 +2006,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 sendBroadcastAsUser(batteryIntent, UserHandle.getUserHandleForUid(-1))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send battery level broadcast: ${e.message}")
+            Timber.e("Failed to send battery level broadcast: ${e.message}")
         }
 
         // Update Android Settings Intelligence's battery widget
@@ -2048,80 +2018,80 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         try {
             sendBroadcastAsUser(statusIntent, UserHandle.getUserHandleForUid(-1))
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send ASI battery level broadcast: ${e.message}")
+            Timber.e("Failed to send ASI battery level broadcast: ${e.message}")
         }
 
-        Log.d(TAG, "Broadcast battery level $batteryUnified% to system")
+        Timber.d("Broadcast battery level $batteryUnified% to system")
     }
 
     private fun setMetadatas(d: BluetoothDevice) {
         d.let{ device ->
-            val instance = airpodsInstance
-            if (instance != null) {
-                val metadataSet = SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_MAIN_ICON,
-                    resToUri(instance.model.budCaseRes).toString().toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_MODEL_NAME,
-                    instance.model.name.toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_DEVICE_TYPE,
-                    device.DEVICE_TYPE_UNTETHERED_HEADSET.toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_UNTETHERED_CASE_ICON,
-                    resToUri(instance.model.caseRes).toString().toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_UNTETHERED_RIGHT_ICON,
-                    resToUri(instance.model.rightBudsRes).toString().toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_UNTETHERED_LEFT_ICON,
-                    resToUri(instance.model.leftBudsRes).toString().toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_MANUFACTURER_NAME,
-                    instance.model.manufacturer.toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_COMPANION_APP,
-                    "me.kavisdevar.librepods".toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_UNTETHERED_CASE_LOW_BATTERY_THRESHOLD,
-                    "20".toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_UNTETHERED_LEFT_LOW_BATTERY_THRESHOLD,
-                    "20".toByteArray()
-                ) &&
-                SystemApisUtils.setMetadata(
-                    device,
-                    device.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD,
-                    "20".toByteArray()
-                )
-                Log.d(TAG, "Metadata set: $metadataSet")
-            } else {
-                Log.w(TAG, "AirPods instance is not of type AirPodsInstance, skipping metadata setting")
-            }
+//            val instance = airpodsInstance
+//            if (instance != null) {
+//                val metadataSet = SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_MAIN_ICON,
+//                    resToUri(instance.model.budCaseRes).toString().toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_MODEL_NAME,
+//                    instance.model.name.toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_DEVICE_TYPE,
+//                    device.DEVICE_TYPE_UNTETHERED_HEADSET.toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_UNTETHERED_CASE_ICON,
+//                    resToUri(instance.model.caseRes).toString().toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_UNTETHERED_RIGHT_ICON,
+//                    resToUri(instance.model.rightBudsRes).toString().toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_UNTETHERED_LEFT_ICON,
+//                    resToUri(instance.model.leftBudsRes).toString().toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_MANUFACTURER_NAME,
+//                    instance.model.manufacturer.toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_COMPANION_APP,
+//                    "me.kavisdevar.librepods".toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_UNTETHERED_CASE_LOW_BATTERY_THRESHOLD,
+//                    "20".toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_UNTETHERED_LEFT_LOW_BATTERY_THRESHOLD,
+//                    "20".toByteArray()
+//                ) &&
+//                SystemApisUtils.setMetadata(
+//                    device,
+//                    device.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD,
+//                    "20".toByteArray()
+//                )
+//                Timber.d("Metadata set: $metadataSet")
+//            } else {
+//                Timber.w("AirPods instance is not of type AirPodsInstance, skipping metadata setting")
+//            }
         }
     }
 
     @Suppress("ClassName")
-    private object bluetoothReceiver : BroadcastReceiver() {
+    private val bluetoothReceiver = object : BroadcastReceiver() {
         @SuppressLint("MissingPermission")
         override fun onReceive(context: Context?, intent: Intent) {
             val bluetoothDevice =
@@ -2138,10 +2108,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             val name = context?.getSharedPreferences("settings", MODE_PRIVATE)
                 ?.getString("name", bluetoothDevice?.name)
             if (bluetoothDevice != null && action != null && !action.isEmpty()) {
-                Log.d(TAG, "Received bluetooth connection broadcast: action=$action")
-                if (ServiceManager.getService()?.isConnectedLocally == true) {
-                    Log.d(TAG, "Device is already connected locally, checking if we should keep audio connected")
-                    if (ServiceManager.getService()?.socket?.isConnected == true) ServiceManager.getService()?.manuallyCheckForAudioSource() else Log.d(TAG, "We're not connected, ignoring")
+                Timber.d("Received bluetooth connection broadcast: action=$action")
+                if (isConnectedLocally) {
+                    Timber.d("Device is already connected locally, checking if we should keep audio connected")
+                    if (socket.isConnected) manuallyCheckForAudioSource() else Timber.d("We're not connected, ignoring")
                     return
                 }
                 if (BluetoothDevice.ACTION_ACL_CONNECTED == action) {
@@ -2166,10 +2136,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     @SuppressLint("InlinedApi", "MissingPermission", "UnspecifiedRegisterReceiverFlag")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Service started with intent action: ${intent?.action}")
+        Timber.d("Service started with intent action: ${intent?.action}")
 
         if (intent?.action == "me.kavishdevar.librepods.RECONNECT_AFTER_REVERSE") {
-            Log.d(TAG, "reconnect after reversed received, taking over")
+            Timber.d("reconnect after reversed received, taking over")
             disconnectedBecauseReversed = false
             otherDeviceTookOver = false
             takeOver("music", manualTakeOverAfterReversed = true)
@@ -2180,11 +2150,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     fun manuallyCheckForAudioSource() {
         val shouldResume = MediaController.getMusicActive() // todo: for some reason we lose this info after disconnecting, probably android dispatches some event. haven't investigated yet.
-	if (airpodsInstance == null) return
-        Log.d(TAG, "disconnectedBecauseReversed: $disconnectedBecauseReversed, otherDeviceTookOver: $otherDeviceTookOver")
+//	if (airpodsInstance == null) return
+        Timber.d("disconnectedBecauseReversed: $disconnectedBecauseReversed, otherDeviceTookOver: $otherDeviceTookOver")
 	if ((earDetectionNotification.status[0] != 0.toByte() && earDetectionNotification.status[1] != 0.toByte()) || disconnectedBecauseReversed || otherDeviceTookOver) {
-            Log.d(
-                TAG,
+            Timber.d(
                 "For some reason, Android connected to the audio profile itself even after disconnecting. Disconnecting audio profile again! I will resume: $shouldResume"
             )
             disconnectAudio(this, device, shouldResume = shouldResume)
@@ -2211,20 +2180,20 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             )
             otherDeviceTookOver = false
         }
-        Log.d(TAG, "owns connection: ${aacpManager.getControlCommandStatus(AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION)?.value?.get(0)?.toInt()}")
+        Timber.d("owns connection: ${aacpManager.getControlCommandStatus(AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION)?.value?.get(0)?.toInt()}")
         if (isConnectedLocally) {
             if (aacpManager.getControlCommandStatus(AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION)?.value[0]?.toInt() != 1 || (aacpManager.audioSource?.mac != localMac && aacpManager.audioSource?.type != AACPManager.Companion.AudioSourceType.NONE)) {
                 if (disconnectedBecauseReversed) {
                     if (manualTakeOverAfterReversed) {
-                        Log.d(TAG, "forcefully taking over despite reverse as user requested")
+                        Timber.d("forcefully taking over despite reverse as user requested")
                         disconnectedBecauseReversed = false
                     } else {
-                        Log.d(TAG, "connected locally, but can not hijack as other device had reversed")
+                        Timber.d("connected locally, but can not hijack as other device had reversed")
                         return
                     }
                 }
 
-                Log.d(TAG, "already connected locally, hijacking connection by asking AirPods")
+                Timber.d("already connected locally, hijacking connection by asking AirPods")
                 aacpManager.sendControlCommand(
                     AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION.value,
                     1
@@ -2246,34 +2215,34 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 CoroutineScope(Dispatchers.IO).launch {
                     delay(500) // a2dp takes time, and so does taking control + AirPods pause it for no reason after connecting
                     if (takingOverFor == "music") {
-                        Log.d(TAG, "Resuming music after taking control")
+                        Timber.d("Resuming music after taking control")
                         MediaController.sendPlay(replayWhenPaused = true)
                     } else if (startHeadTrackingAgain) {
-                        Log.d(TAG, "Starting head tracking again after taking control")
+                        Timber.d("Starting head tracking again after taking control")
                         Handler(Looper.getMainLooper()).postDelayed({
                             startHeadTracking()
                         }, 500)
                     }
                     delay(1000) // should ideally have a callback when it's taken over because for some reason android doesn't dispatch when it's paused
                     if (takingOverFor == "music") {
-                        Log.d(TAG, "resuming again just in case")
+                        Timber.d("resuming again just in case")
                         MediaController.sendPlay(force = true)
                     }
                 }
             } else {
-                Log.d(TAG, "Already connected locally and already own connection, skipping takeover")
+                Timber.d("Already connected locally and already own connection, skipping takeover")
             }
             return
         }
 
         if (CrossDevice.isAvailable) {
-            Log.d(TAG, "CrossDevice is available, continuing")
+            Timber.d("CrossDevice is available, continuing")
         }
         else if (bleManager.getMostRecentStatus()?.isLeftInEar == true || bleManager.getMostRecentStatus()?.isRightInEar == true) {
-            Log.d(TAG, "At least one AirPod is in ear, continuing")
+            Timber.d("At least one AirPod is in ear, continuing")
         }
         else {
-            Log.d(TAG, "CrossDevice not available and AirPods not in ear, skipping")
+            Timber.d("CrossDevice not available and AirPods not in ear, skipping")
             return
         }
 
@@ -2284,7 +2253,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
 
         if (!shouldTakeOverPState) {
-            Log.d(TAG, "Not taking over audio, phone state takeover disabled")
+            Timber.d("Not taking over audio, phone state takeover disabled")
             return
         }
 
@@ -2299,21 +2268,21 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
 
         if (!shouldTakeOver) {
-            Log.d(TAG, "Not taking over audio, airpods state takeover disabled")
+            Timber.d("Not taking over audio, airpods state takeover disabled")
             return
         }
 
         if (takingOverFor == "music") {
-            Log.d(TAG, "Pausing music so that it doesn't play through speakers")
+            Timber.d("Pausing music so that it doesn't play through speakers")
             MediaController.pausedWhileTakingOver = true
             MediaController.sendPause(true)
         } else {
             handleIncomingCallOnceConnected = true
         }
 
-        Log.d(TAG, "Taking over audio")
+        Timber.d("Taking over audio")
         CrossDevice.sendRemotePacket(CrossDevicePackets.REQUEST_DISCONNECT.packet)
-        Log.d(TAG, macAddress)
+        Timber.d(macAddress)
 
         sharedPreferences.edit { putBoolean("CrossDeviceIsAvailable", false) }
         device = getSystemService(BluetoothManager::class.java).adapter.bondedDevices.find {
@@ -2323,7 +2292,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         if (device != null) {
             if (config.bleOnlyMode) {
                 // In BLE-only mode, just show connecting status without actual L2CAP connection
-                Log.d(TAG, "BLE-only mode: showing connecting status without L2CAP connection")
+                Timber.d("BLE-only mode: showing connecting status without L2CAP connection")
                 updateNotificationContent(
                     true,
                     config.deviceName,
@@ -2353,11 +2322,11 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         )
 
         val constructors = BluetoothSocket::class.java.declaredConstructors
-        Log.d(TAG, "BluetoothSocket has ${constructors.size} constructors:")
+        Timber.d("BluetoothSocket has ${constructors.size} constructors:")
 
         constructors.forEachIndexed { index, constructor ->
             val params = constructor.parameterTypes.joinToString(", ") { it.simpleName }
-            Log.d(TAG, "Constructor $index: ($params)")
+            Timber.d("Constructor $index: ($params)")
         }
 
         var lastException: Exception? = null
@@ -2365,31 +2334,31 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
         for ((index, params) in constructorSpecs.withIndex()) {
             try {
-                Log.d(TAG, "Trying constructor signature #${index + 1}")
+                Timber.d("Trying constructor signature #${index + 1}")
                 attemptedConstructors++
                 return HiddenApiBypass.newInstance(BluetoothSocket::class.java, *params) as BluetoothSocket
             } catch (e: Exception) {
-                Log.e(TAG, "Constructor signature #${index + 1} failed: ${e.message}")
+                Timber.e("Constructor signature #${index + 1} failed: ${e.message}")
                 lastException = e
             }
         }
 
         val errorMessage = "Failed to create BluetoothSocket after trying $attemptedConstructors constructor signatures"
-        Log.e(TAG, errorMessage)
+        Timber.e(errorMessage)
         showSocketConnectionFailureNotification(errorMessage)
         throw lastException ?: IllegalStateException(errorMessage)
     }
 
     @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
     fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
-        Log.d(TAG, "<LogCollector:Start> Connecting to socket")
+        Timber.d("<LogCollector:Start> Connecting to socket")
         HiddenApiBypass.addHiddenApiExemptions("Landroid/bluetooth/BluetoothSocket;")
         val uuid: ParcelUuid = ParcelUuid.fromString("74ec2172-0bad-4d01-8f77-997b2be0722a")
         if (!isConnectedLocally && !CrossDevice.isAvailable) {
             socket = try {
                 createBluetoothSocket(device, uuid)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create BluetoothSocket: ${e.message}")
+                Timber.e("Failed to create BluetoothSocket: ${e.message}")
                 showSocketConnectionFailureNotification("Failed to create Bluetooth socket: ${e.localizedMessage}")
                 return
             }
@@ -2408,33 +2377,33 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                             attManager!!.connect()
 
                             // Create AirPodsInstance from stored config if available
-                            if (airpodsInstance == null && config.airpodsModelNumber.isNotEmpty()) {
-                                val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
-                                if (model != null) {
-                                    airpodsInstance = AirPodsInstance(
-                                        name = config.airpodsName,
-                                        model = model,
-                                        actualModelNumber = config.airpodsModelNumber,
-                                        serialNumber = config.airpodsSerialNumber,
-                                        leftSerialNumber = config.airpodsLeftSerialNumber,
-                                        rightSerialNumber = config.airpodsRightSerialNumber,
-                                        version1 = config.airpodsVersion1,
-                                        version2 = config.airpodsVersion2,
-                                        version3 = config.airpodsVersion3,
-                                        aacpManager = aacpManager,
-                                        attManager = attManager
-                                    )
-                                }
-                            }
+//                            if (airpodsInstance == null && config.airpodsModelNumber.isNotEmpty()) {
+//                                val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
+//                                if (model != null) {
+//                                    airpodsInstance = AirPodsInstance(
+//                                        name = config.airpodsName,
+//                                        model = model,
+//                                        actualModelNumber = config.airpodsModelNumber,
+//                                        serialNumber = config.airpodsSerialNumber,
+//                                        leftSerialNumber = config.airpodsLeftSerialNumber,
+//                                        rightSerialNumber = config.airpodsRightSerialNumber,
+//                                        version1 = config.airpodsVersion1,
+//                                        version2 = config.airpodsVersion2,
+//                                        version3 = config.airpodsVersion3,
+//                                        aacpManager = aacpManager,
+//                                        attManager = attManager
+//                                    )
+//                                }
+//                            }
 
                             updateNotificationContent(
                                 true,
                                 config.deviceName,
                                 batteryNotification.getBattery()
                             )
-                            Log.d(TAG, "<LogCollector:Complete:Success> Socket connected")
+                            Timber.d("<LogCollector:Complete:Success> Socket connected")
                         } catch (e: Exception) {
-                            Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected, ${e.message}")
+                            Timber.d("<LogCollector:Complete:Failed> Socket not connected, ${e.message}")
                             if (manual) {
                                 sendToast(
                                     "Couldn't connect to socket: ${e.localizedMessage}"
@@ -2448,7 +2417,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     }
                 }
                 if (!socket.isConnected) {
-                    Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected")
+                    Timber.d("<LogCollector:Complete:Failed> Socket not connected")
                     if (manual) {
                         sendToast(
                             "Couldn't connect to socket: timeout."
@@ -2463,7 +2432,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     aacpManager.sendPacket(aacpManager.createHandshakePacket())
                     aacpManager.sendSetFeatureFlagsPacket()
                     aacpManager.sendNotificationRequest()
-                    Log.d(TAG, "Requesting proximity keys")
+                    Timber.d("Requesting proximity keys")
                     aacpManager.sendRequestProximityKeys((AACPManager.Companion.ProximityKeyType.IRK.value + AACPManager.Companion.ProximityKeyType.ENC_KEY.value).toByte())
                     CoroutineScope(Dispatchers.IO).launch {
                         aacpManager.sendPacket(aacpManager.createHandshakePacket())
@@ -2513,19 +2482,19 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                                     aacpManager.receivePacket(data)
 
                                     if (!isHeadTrackingData(data)) {
-                                        Log.d("AirPodsData", "Data received: $formattedHex")
+                                        Timber.d("Data received: $formattedHex")
                                         logPacket(data, "AirPods")
                                     }
 
                                 } else if (bytesRead == -1) {
-                                    Log.d("AirPods Service", "Socket closed (bytesRead = -1)")
+                                    Timber.d("Socket closed (bytesRead = -1)")
                                     sendBroadcast(Intent(AirPodsNotifications.AIRPODS_DISCONNECTED))
                                     aacpManager.disconnected()
                                     return@launch
                                 }
                             }
                         }
-                        Log.d("AirPods Service", "Socket closed")
+                        Timber.d("Socket closed")
                         isConnectedLocally = false
                         socket.close()
                         aacpManager.disconnected()
@@ -2535,7 +2504,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Log.d(TAG, "Failed to connect to socket: ${e.message}")
+                Timber.d("Failed to connect to socket: ${e.message}")
                 showSocketConnectionFailureNotification("Failed to establish connection: ${e.localizedMessage}")
                 isConnectedLocally = false
                 this@AirPodsService.device = device
@@ -2548,7 +2517,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         if (!this::socket.isInitialized) return
         socket.close()
         MediaController.pausedWhileTakingOver = false
-        Log.d(TAG, "Disconnected from AirPods, showing island.")
+        Timber.d("Disconnected from AirPods, showing island.")
         showIsland(this, batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level!!.coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level!!),
             IslandType.MOVED_TO_REMOTE)
         val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
@@ -2592,7 +2561,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
             override fun onServiceDisconnected(profile: Int) {}
         }, BluetoothProfile.A2DP)
-        Log.d(TAG, "Disconnected AirPods upon user request")
+        Timber.d("Disconnected AirPods upon user request")
 
     }
 
@@ -2631,7 +2600,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 if (profile == BluetoothProfile.A2DP) {
                     try {
                         if (proxy.getConnectionState(device) == BluetoothProfile.STATE_DISCONNECTED) {
-                            Log.d(TAG, "Already disconnected from A2DP")
+                            Timber.d("Already disconnected from A2DP")
                             return
                         }
                         val method =
@@ -2724,13 +2693,13 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
 
         updateNotificationContent(true, name, batteryNotification.getBattery())
-        Log.d(TAG, "setName: $name")
+        Timber.d("setName: $name")
     }
 
     @SuppressLint("MissingPermission")
     override fun onDestroy() {
         clearPacketLogs()
-        Log.d(TAG, "Service stopped is being destroyed for some reason!")
+        Timber.d("Service stopped is being destroyed for some reason!")
 
         sharedPreferences.unregisterOnSharedPreferenceChangeListener(this)
 
@@ -2772,9 +2741,9 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         val useAlternatePackets = sharedPreferences.getBoolean("use_alternate_head_tracking_packets", false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && aacpManager.getControlCommandStatus(AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION)?.value?.get(0)?.toInt() != 1) {
             takeOver("call", startHeadTrackingAgain = true)
-            Log.d(TAG, "Taking over for head tracking")
+            Timber.d("Taking over for head tracking")
         } else {
-            Log.w(TAG, "Will not be taking over for head tracking, might not work.")
+            Timber.w("Will not be taking over for head tracking, might not work.")
         }
         if (useAlternatePackets) {
             aacpManager.sendDataPacket(aacpManager.createAlternateStartHeadTrackingPacket())

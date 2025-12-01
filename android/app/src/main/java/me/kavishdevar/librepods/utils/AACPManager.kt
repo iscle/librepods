@@ -21,6 +21,7 @@
 package me.kavishdevar.librepods.utils
 
 import android.util.Log
+import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -268,7 +269,7 @@ class AACPManager {
     }
 
     fun parseStemPressResponse(data: ByteArray): Pair<StemPressType, StemPressBudType> {
-        Log.d(TAG, "Parsing Stem Press Response: ${data.joinToString(" ") { "%02X".format(it) }}")
+        Timber.d("Parsing Stem Press Response: ${data.joinToString(" ") { "%02X".format(it) }}")
         if (data.size != 8) {
             throw IllegalArgumentException("Data array too short to parse Stem Press Response")
         }
@@ -382,13 +383,13 @@ class AACPManager {
         val keys = mutableMapOf<ProximityKeyType, ByteArray>()
         var offset = 7
         for (i in 0 until keyCount) {
-            Log.d(TAG, "Parsing Proximity Key $i")
+            Timber.d("Parsing Proximity Key $i")
             if (offset + 3 >= data.size) {
                 throw IllegalArgumentException("Data array too short to parse Proximity Keys Response")
             }
             val keyType = data[offset]
             val keyLength = data[offset + 2].toInt()
-            Log.d(TAG, "Key Type: ${keyType.toString(16)}, Key Length: $keyLength")
+            Timber.d("Key Type: ${keyType.toString(16)}, Key Length: $keyLength")
             offset += 4
             if (offset + keyLength > data.size) {
                 throw IllegalArgumentException("Data array too short to parse Proximity Keys Response")
@@ -408,7 +409,7 @@ class AACPManager {
     }
 
     fun sendRequestProximityKeys(type: Byte): Boolean {
-        Log.d(TAG, "Requesting proximity keys of type: ${type.toString(16)}")
+        Timber.d("Requesting proximity keys of type: ${type.toString(16)}")
         return sendDataPacket(createRequestProximityKeysPacket(type))
     }
 
@@ -525,7 +526,7 @@ class AACPManager {
                     val (mac, type) = parseAudioSourceResponse(packet)
                     audioSource = AudioSource(mac, type)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error parsing audio source response: ${e.message}")
+                    Timber.e("Error parsing audio source response: ${e.message}")
                 }
                 callback?.onAudioSourceReceived(packet)
             }
@@ -545,7 +546,7 @@ class AACPManager {
                 //     val nameEndIndex = if (packetString.contains("other")) (packetString.indexOf("otherDevice") - 1) else (packetString.indexOf("nearbyAudio") - 1)
                 //     val name = packet.sliceArray(nameStartIndex..nameEndIndex).decodeToString()
                 //     connectedDevices.find { it.mac == sender }?.type = name
-                //     Log.d(TAG, "Device $sender is named $name")
+                //     Timber.d("Device $sender is named $name")
                 // } // doesn't work, it's different for Mac and iPad. just hardcoding for now
                 if ("iPad" in packetString) {
                     connectedDevices.find { it.mac == sender }?.type = "iPad"
@@ -558,7 +559,7 @@ class AACPManager {
                 } else if ("Android" in packetString) {
                     connectedDevices.find { it.mac == sender }?.type = "Android"
                 }
-                Log.d(TAG, "Smart Routing Response from $sender: $packetString, type: ${connectedDevices.find { it.mac == sender }?.type}")
+                Timber.d("Smart Routing Response from $sender: $packetString, type: ${connectedDevices.find { it.mac == sender }?.type}")
                 if (packetString.contains("SetOwnershipToFalse")) {
                     callback?.onOwnershipToFalseRequest(sender, packetString.contains("ReverseBannerTapped"))
                 }
@@ -594,16 +595,16 @@ class AACPManager {
 
                 // for now, taking just the first EQ
                 eqData = FloatArray(8) { i -> eq1.get(i) }
-                Log.d(TAG, "EQ Data set to: ${eqData.toList()}, eqOnPhone: $eqOnPhone, eqOnMedia: $eqOnMedia")
+                Timber.d("EQ Data set to: ${eqData.toList()}, eqOnPhone: $eqOnPhone, eqOnMedia: $eqOnMedia")
             }
-            
+
             Opcodes.INFORMATION -> {
-                Log.e(TAG, "Parsing Information Packet")
+                Timber.e("Parsing Information Packet")
                 val information = parseInformationPacket(packet)
                 callback?.onDeviceInformationReceived(information)
             }
             else -> {
-                Log.d(TAG, "Unknown opcode received: ${opcode.toHexString()}")
+                Timber.d("Unknown opcode received: ${opcode.toHexString()}")
                 callback?.onUnknownPacketReceived(packet)
             }
         }
@@ -783,11 +784,11 @@ class AACPManager {
     fun sendMediaInformationNewDevice(selfMacAddress: String, targetMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) || targetMacAddress.length != 17 || !targetMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             // throw IllegalArgumentException("MAC address must be 6 bytes")
-            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress, targetMacAddress=$targetMacAddress")
+            Timber.w("Invalid MAC address format, got: selfMacAddress=$selfMacAddress, targetMacAddress=$targetMacAddress")
             return false
         }
-        Log.d(TAG, "SELFMAC: ${selfMacAddress}, TARGETMAC: $targetMacAddress")
-        Log.d(TAG, "Sending Media Information packet to $targetMacAddress")
+        Timber.d("SELFMAC: ${selfMacAddress}, TARGETMAC: $targetMacAddress")
+        Timber.d("Sending Media Information packet to $targetMacAddress")
         return sendDataPacket(createMediaInformationNewDevicePacket(selfMacAddress, targetMacAddress))
     }
 
@@ -825,13 +826,13 @@ class AACPManager {
     fun sendHijackRequest(selfMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             // throw IllegalArgumentException("MAC address must be 6 bytes")
-            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
+            Timber.w("Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
             return false
         }
         var success = false
         for (connectedDevice in connectedDevices) {
             if (connectedDevice.mac != selfMacAddress) {
-                Log.d(TAG, "Sending Hijack Request packet to ${connectedDevice.mac}")
+                Timber.d("Sending Hijack Request packet to ${connectedDevice.mac}")
                 success = sendDataPacket(createHijackRequestPacket(connectedDevice.mac)) || success
             }
         }
@@ -868,16 +869,16 @@ class AACPManager {
     fun sendMediaInformataion(selfMacAddress: String, streamingState: Boolean = false): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             // throw IllegalArgumentException("MAC address must be 6 bytes")
-            Log.d(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
+            Timber.d("Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
             return false
         }
-        Log.d(TAG, "SELFMAC: $selfMacAddress")
+        Timber.d("SELFMAC: $selfMacAddress")
         val targetMac = connectedDevices.find { it.mac != selfMacAddress }?.mac
         if (targetMac == null) {
-            Log.w(TAG, "Cannot send Media Information packet: No connected device found")
+            Timber.w("Cannot send Media Information packet: No connected device found")
             return false
         }
-        Log.d(TAG, "Sending Media Information packet to $targetMac")
+        Timber.d("Sending Media Information packet to $targetMac")
         return sendDataPacket(
             createMediaInformationPacket(
                 selfMacAddress,
@@ -929,16 +930,16 @@ class AACPManager {
     fun sendSmartRoutingShowUI(selfMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             // throw IllegalArgumentException("MAC address must be 6 bytes")
-            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
+            Timber.w("Invalid MAC address format, got: selfMacAddress=$selfMacAddress")
             return false
         }
 
         val targetMac = connectedDevices.find { it.mac != selfMacAddress }?.mac
         if (targetMac == null) {
-            Log.w(TAG, "Cannot send Smart Routing Show UI packet: No connected device found")
+            Timber.w("Cannot send Smart Routing Show UI packet: No connected device found")
             return false
         }
-        Log.d(TAG, "Sending Smart Routing Show UI packet to $targetMac")
+        Timber.d("Sending Smart Routing Show UI packet to $targetMac")
         return sendDataPacket(createSmartRoutingShowUIPacket(targetMac))
     }
 
@@ -974,7 +975,7 @@ class AACPManager {
         var success = false
         for (connectedDevice in connectedDevices) {
             if (connectedDevice.mac != selfMacAddress) {
-                Log.d(TAG, "Sending Hijack Reversed packet to ${connectedDevice.mac}")
+                Timber.d("Sending Hijack Reversed packet to ${connectedDevice.mac}")
                 success = sendDataPacket(createHijackReversedPacket(connectedDevice.mac)) || success
             }
         }
@@ -1007,10 +1008,10 @@ class AACPManager {
     fun sendAddTiPiDevice(selfMacAddress: String, targetMacAddress: String): Boolean {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) || targetMacAddress.length != 17 || !targetMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             // throw IllegalArgumentException("MAC address must be 6 bytes")
-            Log.w(TAG, "Invalid MAC address format, got: selfMacAddress=$selfMacAddress, targetMacAddress=$targetMacAddress")
+            Timber.w("Invalid MAC address format, got: selfMacAddress=$selfMacAddress, targetMacAddress=$targetMacAddress")
             return false
         }
-        Log.d(TAG, "Sending Add TiPi Device packet to $targetMacAddress")
+        Timber.d("Sending Add TiPi Device packet to $targetMacAddress")
         return sendDataPacket(createAddTiPiDevicePacket(selfMacAddress, targetMacAddress))
     }
 
@@ -1098,7 +1099,7 @@ class AACPManager {
             (if (doublePressCustomized) 0x02 else 0) or
             (if (triplePressCustomized) 0x04 else 0) or
             (if (longPressCustomized) 0x08 else 0)).toByte()
-        Log.d(TAG, "Sending Stem Config Packet with value: ${value.toHexString()}")
+        Timber.d("Sending Stem Config Packet with value: ${value.toHexString()}")
         return sendControlCommand(
             ControlCommandIdentifiers.STEM_CONFIG.value, value
         )
@@ -1107,7 +1108,7 @@ class AACPManager {
     @OptIn(ExperimentalStdlibApi::class)
     fun sendPacket(packet: ByteArray): Boolean {
         try {
-            Log.d(TAG, "Sending packet: ${packet.joinToString(" ") { "%02X".format(it) }}")
+            Timber.d("Sending packet: ${packet.joinToString(" ") { "%02X".format(it) }}")
 
             if (packet[4] == Opcodes.CONTROL_COMMAND) {
                 val controlCommand = ControlCommand.fromByteArray(packet)
@@ -1129,11 +1130,11 @@ class AACPManager {
                 socket.outputStream?.flush()
                 return true
             } else {
-                Log.d(TAG, "Can't send packet: Socket not initialized or connected")
+                Timber.d("Can't send packet: Socket not initialized or connected")
                 return false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending packet: ${e.message}")
+            Timber.e("Error sending packet: ${e.message}")
             return false
         }
     }
@@ -1169,7 +1170,7 @@ class AACPManager {
     }
 
     fun parseAudioSourceResponse(data: ByteArray): Pair<String, AudioSourceType> {
-        Log.d(TAG, "Parsing Audio Source Response: ${data.joinToString(" ") { "%02X".format(it) }}")
+        Timber.d("Parsing Audio Source Response: ${data.joinToString(" ") { "%02X".format(it) }}")
         if (data.size < 9) {
             throw IllegalArgumentException("Data array too short to parse Audio Source Response")
         }
@@ -1228,7 +1229,7 @@ class AACPManager {
     }
 
     fun disconnected() {
-        Log.d(TAG, "Disconnected, clearing state")
+        Timber.d("Disconnected, clearing state")
         controlCommandStatusList.clear()
         controlCommandListeners.clear()
         owns = false

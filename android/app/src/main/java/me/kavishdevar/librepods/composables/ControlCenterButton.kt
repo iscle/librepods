@@ -93,7 +93,7 @@ fun ControlCenterButton(
                 modifier = Modifier.size(32.dp)
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             text = label,
             color = TextColor,

@@ -33,6 +33,7 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
 import androidx.annotation.RequiresApi
+import dagger.hilt.android.AndroidEntryPoint
 import me.kavishdevar.librepods.QuickSettingsDialogActivity
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.constants.AirPodsNotifications
@@ -40,7 +41,7 @@ import me.kavishdevar.librepods.constants.NoiseControlMode
 import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-@RequiresApi(Build.VERSION_CODES.Q)
+@AndroidEntryPoint
 class AirPodsQSService : TileService() {
 
     private lateinit var sharedPreferences: SharedPreferences

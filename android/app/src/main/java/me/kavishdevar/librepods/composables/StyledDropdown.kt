@@ -57,9 +57,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -70,10 +67,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.materials.CupertinoMaterials
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import me.kavishdevar.librepods.R
 
-@ExperimentalHazeMaterialsApi
 @Composable
 fun StyledDropdown(
     expanded: Boolean,
@@ -203,11 +197,8 @@ fun StyledDropdown(
                                 ) {
                                     Text(
                                         text,
-                                        style = TextStyle(
-                                            fontSize = 16.sp,
-                                            color = if (isSystemInDarkTheme()) Color.White else Color.Black.copy(alpha = 0.75f),
-                                            fontFamily = FontFamily(Font(R.font.sf_pro))
-                                        )
+                                        fontSize = 16.sp,
+                                        color = if (isSystemInDarkTheme()) Color.White else Color.Black.copy(alpha = 0.75f)
                                     )
                                     Checkbox(
                                         checked = text == selectedOption,

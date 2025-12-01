@@ -22,61 +22,53 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.mikepenz.aboutlibraries.ui.compose.m3.LibrariesContainer
 import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.composables.StyledScaffold
-import me.kavishdevar.librepods.composables.StyledSlider
-import me.kavishdevar.librepods.services.ServiceManager
-import me.kavishdevar.librepods.utils.AACPManager
+import me.kavishdevar.librepods.ui.component.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 private var debounceJob: Job? = null
 
 @SuppressLint("DefaultLocale")
-@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
 @Composable
-fun OpenSourceLicensesScreen(navController: NavController) {
+fun OpenSourceLicensesScreen() {
     val isDarkTheme = isSystemInDarkTheme()
     val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
-        title = stringResource(R.string.open_source_licenses)
-    ) { spacerHeight ->
-        Column(
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.open_source_licenses))
+                }
+            )
+        },
+    ) { innerPadding ->
+    Column(
             modifier = Modifier
                 .fillMaxSize()
                 .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
-            val context = androidx.compose.ui.platform.LocalContext.current
+//            Spacer(Modifier.height(spacerHeight))
+            val context = LocalContext.current
             val libraries by produceLibraries {
                 context.resources.openRawResource(R.raw.aboutlibraries)
                     .bufferedReader()

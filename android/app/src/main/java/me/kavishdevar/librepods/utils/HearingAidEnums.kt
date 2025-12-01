@@ -18,13 +18,13 @@
 
 package me.kavishdevar.librepods.utils
 
-import android.util.Log
 import androidx.compose.runtime.MutableState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -145,9 +145,9 @@ fun sendHearingAidSettings(
         delay(100)
         try {
             val currentData = attManager.read(ATTHandles.HEARING_AID)
-            Log.d(TAG, "Current data before update: ${currentData.joinToString(" ") { String.format("%02X", it) }}")
+            Timber.d("Current data before update: ${currentData.joinToString(" ") { String.format("%02X", it) }}")
             if (currentData.size < 104) {
-                Log.w(TAG, "Current data size ${currentData.size} too small, cannot send settings")
+                Timber.w("Current data size ${currentData.size} too small, cannot send settings")
                 return@launch
             }
             val buffer = ByteBuffer.wrap(currentData).order(ByteOrder.LITTLE_ENDIAN)
@@ -180,7 +180,7 @@ fun sendHearingAidSettings(
             // Own voice amplification
             buffer.putFloat(100, hearingAidSettings.ownVoiceAmplification)
 
-            Log.d(TAG, "Sending updated settings: ${currentData.joinToString(" ") { String.format("%02X", it) }}")
+            Timber.d("Sending updated settings: ${currentData.joinToString(" ") { String.format("%02X", it) }}")
 
             attManager.write(ATTHandles.HEARING_AID, currentData)
         } catch (e: IOException) {

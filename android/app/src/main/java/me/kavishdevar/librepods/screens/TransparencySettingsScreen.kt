@@ -43,54 +43,51 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.delay
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledSlider
-import me.kavishdevar.librepods.composables.StyledToggle
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.ATTHandles
 import me.kavishdevar.librepods.utils.RadareOffsetFinder
 import me.kavishdevar.librepods.utils.TransparencySettings
 import me.kavishdevar.librepods.utils.parseTransparencySettingsResponse
 import me.kavishdevar.librepods.utils.sendTransparencySettings
+import timber.log.Timber
 import java.io.IOException
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 private const val TAG = "TransparencySettings"
 
 @SuppressLint("DefaultLocale")
-@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
 @Composable
-fun TransparencySettingsScreen(navController: NavController) {
+fun TransparencySettingsScreen() {
     val isDarkTheme = isSystemInDarkTheme()
     val textColor = if (isDarkTheme) Color.White else Color.Black
     val verticalScrollState = rememberScrollState()
     val attManager = ServiceManager.getService()?.attManager ?: return
     val aacpManager = remember { ServiceManager.getService()?.aacpManager }
-    val isSdpOffsetAvailable =
+    var isSdpOffsetAvailable by
         remember { mutableStateOf(RadareOffsetFinder.isSdpOffsetAvailable()) }
 
     val trackColor = if (isDarkTheme) Color(0xFFB3B3B3) else Color(0xFF929491)
@@ -100,8 +97,14 @@ fun TransparencySettingsScreen(navController: NavController) {
     val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
-        title = stringResource(R.string.customize_transparency_mode)
-    ){ spacerHeight, hazeState ->
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.customize_transparency_mode))
+                }
+            )
+        },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .hazeSource(hazeState)
@@ -111,39 +114,39 @@ fun TransparencySettingsScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
 
-            val enabled = remember { mutableStateOf(false) }
-            val amplificationSliderValue = remember { mutableFloatStateOf(0.5f) }
-            val balanceSliderValue = remember { mutableFloatStateOf(0.5f) }
-            val toneSliderValue = remember { mutableFloatStateOf(0.5f) }
-            val ambientNoiseReductionSliderValue = remember { mutableFloatStateOf(0.0f) }
-            val conversationBoostEnabled = remember { mutableStateOf(false) }
-            val eq = remember { mutableStateOf(FloatArray(8)) }
-            val phoneMediaEQ = remember { mutableStateOf(FloatArray(8) { 0.5f }) }
+            var enabled by remember { mutableStateOf(false) }
+            var amplificationSliderValue by remember { mutableFloatStateOf(0.5f) }
+            var balanceSliderValue by remember { mutableFloatStateOf(0.5f) }
+            var toneSliderValue by remember { mutableFloatStateOf(0.5f) }
+            var ambientNoiseReductionSliderValue by remember { mutableFloatStateOf(0.0f) }
+            var conversationBoostEnabled by remember { mutableStateOf(false) }
+            var eq by remember { mutableStateOf(FloatArray(8)) }
+            var phoneMediaEQ by remember { mutableStateOf(FloatArray(8) { 0.5f }) }
 
-            val initialLoadComplete = remember { mutableStateOf(false) }
+            var initialLoadComplete by remember { mutableStateOf(false) }
 
-            val initialReadSucceeded = remember { mutableStateOf(false) }
-            val initialReadAttempts = remember { mutableIntStateOf(0) }
+            var initialReadSucceeded by remember { mutableStateOf(false) }
+            var initialReadAttempts by remember { mutableIntStateOf(0) }
 
-            val transparencySettings = remember {
+            var transparencySettings by remember {
                 mutableStateOf(
                     TransparencySettings(
-                        enabled = enabled.value,
-                        leftEQ = eq.value,
-                        rightEQ = eq.value,
-                        leftAmplification = amplificationSliderValue.floatValue + (0.5f - balanceSliderValue.floatValue) * amplificationSliderValue.floatValue * 2,
-                        rightAmplification = amplificationSliderValue.floatValue + (balanceSliderValue.floatValue - 0.5f) * amplificationSliderValue.floatValue * 2,
-                        leftTone = toneSliderValue.floatValue,
-                        rightTone = toneSliderValue.floatValue,
-                        leftConversationBoost = conversationBoostEnabled.value,
-                        rightConversationBoost = conversationBoostEnabled.value,
-                        leftAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                        rightAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                        netAmplification = amplificationSliderValue.floatValue,
-                        balance = balanceSliderValue.floatValue
+                        enabled = enabled,
+                        leftEQ = eq,
+                        rightEQ = eq,
+                        leftAmplification = amplificationSliderValue + (0.5f - balanceSliderValue) * amplificationSliderValue * 2,
+                        rightAmplification = amplificationSliderValue + (balanceSliderValue - 0.5f) * amplificationSliderValue * 2,
+                        leftTone = toneSliderValue,
+                        rightTone = toneSliderValue,
+                        leftConversationBoost = conversationBoostEnabled,
+                        rightConversationBoost = conversationBoostEnabled,
+                        leftAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                        rightAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                        netAmplification = amplificationSliderValue,
+                        balance = balanceSliderValue
                     )
                 )
             }
@@ -152,36 +155,36 @@ fun TransparencySettingsScreen(navController: NavController) {
                 object : (ByteArray) -> Unit {
                     override fun invoke(value: ByteArray) {
                         val parsed = parseTransparencySettingsResponse(value)
-                        enabled.value = parsed.enabled
-                        amplificationSliderValue.floatValue = parsed.netAmplification
-                        balanceSliderValue.floatValue = parsed.balance
-                        toneSliderValue.floatValue = parsed.leftTone
-                        ambientNoiseReductionSliderValue.floatValue =
+                        enabled = parsed.enabled
+                        amplificationSliderValue = parsed.netAmplification
+                        balanceSliderValue = parsed.balance
+                        toneSliderValue = parsed.leftTone
+                        ambientNoiseReductionSliderValue =
                             parsed.leftAmbientNoiseReduction
-                        conversationBoostEnabled.value = parsed.leftConversationBoost
-                        eq.value = parsed.leftEQ.copyOf()
-                        Log.d(TAG, "Updated transparency settings from notification")
+                        conversationBoostEnabled = parsed.leftConversationBoost
+                        eq = parsed.leftEQ.copyOf()
+                        Timber.d("Updated transparency settings from notification")
                     }
                 }
             }
 
             LaunchedEffect(
-                enabled.value,
-                amplificationSliderValue.floatValue,
-                balanceSliderValue.floatValue,
-                toneSliderValue.floatValue,
-                conversationBoostEnabled.value,
-                ambientNoiseReductionSliderValue.floatValue,
-                eq.value,
-                initialLoadComplete.value,
-                initialReadSucceeded.value
+                enabled,
+                amplificationSliderValue,
+                balanceSliderValue,
+                toneSliderValue,
+                conversationBoostEnabled,
+                ambientNoiseReductionSliderValue,
+                eq,
+                initialLoadComplete,
+                initialReadSucceeded
             ) {
-                if (!initialLoadComplete.value) {
-                    Log.d(TAG, "Initial device load not complete - skipping send")
+                if (!initialLoadComplete) {
+                    Timber.d("Initial device load not complete - skipping send")
                     return@LaunchedEffect
                 }
 
-                if (!initialReadSucceeded.value) {
+                if (!initialReadSucceeded) {
                     Log.d(
                         TAG,
                         "Initial device read not successful yet - skipping send until read succeeds"
@@ -189,23 +192,23 @@ fun TransparencySettingsScreen(navController: NavController) {
                     return@LaunchedEffect
                 }
 
-                transparencySettings.value = TransparencySettings(
-                    enabled = enabled.value,
-                    leftEQ = eq.value,
-                    rightEQ = eq.value,
-                    leftAmplification = amplificationSliderValue.floatValue + if (balanceSliderValue.floatValue < 0) -balanceSliderValue.floatValue else 0f,
-                    rightAmplification = amplificationSliderValue.floatValue + if (balanceSliderValue.floatValue > 0) balanceSliderValue.floatValue else 0f,
-                    leftTone = toneSliderValue.floatValue,
-                    rightTone = toneSliderValue.floatValue,
-                    leftConversationBoost = conversationBoostEnabled.value,
-                    rightConversationBoost = conversationBoostEnabled.value,
-                    leftAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                    rightAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                    netAmplification = amplificationSliderValue.floatValue,
-                    balance = balanceSliderValue.floatValue
+                transparencySettings = TransparencySettings(
+                    enabled = enabled,
+                    leftEQ = eq,
+                    rightEQ = eq,
+                    leftAmplification = amplificationSliderValue + if (balanceSliderValue < 0) -balanceSliderValue else 0f,
+                    rightAmplification = amplificationSliderValue + if (balanceSliderValue > 0) balanceSliderValue else 0f,
+                    leftTone = toneSliderValue,
+                    rightTone = toneSliderValue,
+                    leftConversationBoost = conversationBoostEnabled,
+                    rightConversationBoost = conversationBoostEnabled,
+                    leftAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                    rightAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                    netAmplification = amplificationSliderValue,
+                    balance = balanceSliderValue
                 )
-                Log.d("TransparencySettings", "Updated settings: ${transparencySettings.value}")
-                sendTransparencySettings(attManager, transparencySettings.value)
+                Log.d("TransparencySettings", "Updated settings: ${transparencySettings}")
+                sendTransparencySettings(attManager, transparencySettings)
             }
 
             DisposableEffect(Unit) {
@@ -215,7 +218,7 @@ fun TransparencySettingsScreen(navController: NavController) {
             }
 
             LaunchedEffect(Unit) {
-                Log.d(TAG, "Connecting to ATT...")
+                Timber.d("Connecting to ATT...")
                 try {
                     attManager.enableNotifications(ATTHandles.TRANSPARENCY)
                     attManager.registerListener(ATTHandles.TRANSPARENCY, transparencyListener)
@@ -223,74 +226,74 @@ fun TransparencySettingsScreen(navController: NavController) {
                     // If we have an AACP manager, prefer its EQ data to populate EQ controls first
                     try {
                         if (aacpManager != null) {
-                            Log.d(TAG, "Found AACPManager, reading cached EQ data")
+                            Timber.d("Found AACPManager, reading cached EQ data")
                             val aacpEQ = aacpManager.eqData
                             if (aacpEQ.isNotEmpty()) {
-                                eq.value = aacpEQ.copyOf()
-                                phoneMediaEQ.value = aacpEQ.copyOf()
-                                Log.d(TAG, "Populated EQ from AACPManager: ${aacpEQ.toList()}")
+                                eq = aacpEQ.copyOf()
+                                phoneMediaEQ = aacpEQ.copyOf()
+                                Timber.d("Populated EQ from AACPManager: ${aacpEQ.toList()}")
                             } else {
-                                Log.d(TAG, "AACPManager EQ data empty")
+                                Timber.d("AACPManager EQ data empty")
                             }
                         } else {
-                            Log.d(TAG, "No AACPManager available")
+                            Timber.d("No AACPManager available")
                         }
                     } catch (e: Exception) {
-                        Log.w(TAG, "Error reading EQ from AACPManager: ${e.message}")
+                        Timber.w("Error reading EQ from AACPManager: ${e.message}")
                     }
 
                     var parsedSettings: TransparencySettings? = null
                     for (attempt in 1..3) {
-                        initialReadAttempts.intValue = attempt
+                        initialReadAttempts = attempt
                         try {
                             val data = attManager.read(ATTHandles.TRANSPARENCY)
                             parsedSettings = parseTransparencySettingsResponse(data = data)
-                            Log.d(TAG, "Parsed settings on attempt $attempt")
+                            Timber.d("Parsed settings on attempt $attempt")
                         } catch (e: Exception) {
-                            Log.w(TAG, "Read attempt $attempt failed: ${e.message}")
+                            Timber.w("Read attempt $attempt failed: ${e.message}")
                         }
                         delay(200)
                     }
 
                     if (parsedSettings != null) {
-                        Log.d(TAG, "Initial transparency settings: $parsedSettings")
-                        enabled.value = parsedSettings.enabled
-                        amplificationSliderValue.floatValue = parsedSettings.netAmplification
-                        balanceSliderValue.floatValue = parsedSettings.balance
-                        toneSliderValue.floatValue = parsedSettings.leftTone
-                        ambientNoiseReductionSliderValue.floatValue =
+                        Timber.d("Initial transparency settings: $parsedSettings")
+                        enabled = parsedSettings.enabled
+                        amplificationSliderValue = parsedSettings.netAmplification
+                        balanceSliderValue = parsedSettings.balance
+                        toneSliderValue = parsedSettings.leftTone
+                        ambientNoiseReductionSliderValue =
                             parsedSettings.leftAmbientNoiseReduction
-                        conversationBoostEnabled.value = parsedSettings.leftConversationBoost
-                        eq.value = parsedSettings.leftEQ.copyOf()
-                        initialReadSucceeded.value = true
+                        conversationBoostEnabled = parsedSettings.leftConversationBoost
+                        eq = parsedSettings.leftEQ.copyOf()
+                        initialReadSucceeded = true
                     } else {
                         Log.d(
                             TAG,
-                            "Failed to read/parse initial transparency settings after ${initialReadAttempts.intValue} attempts"
+                            "Failed to read/parse initial transparency settings after ${initialReadAttempts} attempts"
                         )
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
                 } finally {
-                    initialLoadComplete.value = true
+                    initialLoadComplete = true
                 }
             }
 
             // Only show transparency mode section if SDP offset is available
-            if (isSdpOffsetAvailable.value) {
-                StyledToggle(
-                    label = stringResource(R.string.transparency_mode),
-                    checkedState = enabled,
-                    independent = true,
-                    description = stringResource(R.string.customize_transparency_mode_description)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+            if (isSdpOffsetAvailable) {
+//                StyledToggle(
+//                    label = stringResource(R.string.transparency_mode),
+//                    checkedState = enabled,
+//                    independent = true,
+//                    description = stringResource(R.string.customize_transparency_mode_description)
+//                )
+                Spacer(Modifier.height(4.dp))
                 StyledSlider(
                     label = stringResource(R.string.amplification),
                     valueRange = -1f..1f,
-                    mutableFloatState = amplificationSliderValue,
+                    value = amplificationSliderValue,
                     onValueChange = {
-                        amplificationSliderValue.floatValue = it
+                        amplificationSliderValue = it
                     },
                     startIcon = "􀊥",
                     endIcon = "􀊩",
@@ -300,9 +303,9 @@ fun TransparencySettingsScreen(navController: NavController) {
                 StyledSlider(
                     label = stringResource(R.string.balance),
                     valueRange = -1f..1f,
-                    mutableFloatState = balanceSliderValue,
+                    value = balanceSliderValue,
                     onValueChange = {
-                        balanceSliderValue.floatValue = it
+                        balanceSliderValue = it
                     },
                     snapPoints = listOf(-1f, 0f, 1f),
                     startLabel = stringResource(R.string.left),
@@ -313,9 +316,9 @@ fun TransparencySettingsScreen(navController: NavController) {
                 StyledSlider(
                     label = stringResource(R.string.tone),
                     valueRange = -1f..1f,
-                    mutableFloatState = toneSliderValue,
+                    value = toneSliderValue,
                     onValueChange = {
-                        toneSliderValue.floatValue = it
+                        toneSliderValue = it
                     },
                     startLabel = stringResource(R.string.darker),
                     endLabel = stringResource(R.string.brighter),
@@ -325,33 +328,30 @@ fun TransparencySettingsScreen(navController: NavController) {
                 StyledSlider(
                     label = stringResource(R.string.ambient_noise_reduction),
                     valueRange = 0f..1f,
-                    mutableFloatState = ambientNoiseReductionSliderValue,
+                    value = ambientNoiseReductionSliderValue,
                     onValueChange = {
-                        ambientNoiseReductionSliderValue.floatValue = it
+                        ambientNoiseReductionSliderValue = it
                     },
                     startLabel = stringResource(R.string.less),
                     endLabel = stringResource(R.string.more),
                     independent = true,
                 )
 
-                StyledToggle(
-                    label = stringResource(R.string.conversation_boost),
-                    checkedState = conversationBoostEnabled,
-                    independent = true,
-                    description = stringResource(R.string.conversation_boost_description)
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.conversation_boost),
+//                    checkedState = conversationBoostEnabled,
+//                    independent = true,
+//                    description = stringResource(R.string.conversation_boost_description)
+//                )
             }
 
             // Only show transparency mode EQ section if SDP offset is available
-            if (isSdpOffsetAvailable.value) {
+            if (isSdpOffsetAvailable) {
                 Text(
                     text = stringResource(R.string.equalizer),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor.copy(alpha = 0.6f),
                     modifier = Modifier.padding(16.dp, bottom = 4.dp)
                 )
 
@@ -364,7 +364,7 @@ fun TransparencySettingsScreen(navController: NavController) {
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
                     for (i in 0 until 8) {
-                        val eqValue = remember(eq.value[i]) { mutableFloatStateOf(eq.value[i]) }
+                        var eqValue by remember(eq[i]) { mutableFloatStateOf(eq[i]) }
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
@@ -373,19 +373,19 @@ fun TransparencySettingsScreen(navController: NavController) {
                                 .height(38.dp)
                         ) {
                             Text(
-                                text = String.format("%.2f", eqValue.floatValue),
+                                text = String.format("%.2f", eqValue),
                                 fontSize = 12.sp,
                                 color = textColor,
                                 modifier = Modifier.padding(bottom = 4.dp)
                             )
 
                             Slider(
-                                value = eqValue.floatValue,
+                                value = eqValue,
                                 onValueChange = { newVal ->
-                                    eqValue.floatValue = newVal
-                                    val newEQ = eq.value.copyOf()
-                                    newEQ[i] = eqValue.floatValue
-                                    eq.value = newEQ
+                                    eqValue = newVal
+                                    val newEQ = eq.copyOf()
+                                    newEQ[i] = eqValue
+                                    eq = newEQ
                                 },
                                 valueRange = 0f..100f,
                                 modifier = Modifier
@@ -420,7 +420,7 @@ fun TransparencySettingsScreen(navController: NavController) {
                                         )
                                         Box(
                                             modifier = Modifier
-                                                .fillMaxWidth(eqValue.floatValue / 100f)
+                                                .fillMaxWidth(eqValue / 100f)
                                                 .height(4.dp)
                                                 .background(
                                                     activeTrackColor,
@@ -441,7 +441,7 @@ fun TransparencySettingsScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
             }
         }
     }

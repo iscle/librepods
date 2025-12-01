@@ -74,17 +74,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
@@ -94,7 +92,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.LogCollector
 import java.io.File
 import java.text.SimpleDateFormat
@@ -118,7 +117,7 @@ fun CustomIconButton(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
 @Composable
-fun TroubleshootingScreen(navController: NavController) {
+fun TroubleshootingScreen() {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -215,8 +214,14 @@ fun TroubleshootingScreen(navController: NavController) {
         modifier = Modifier.fillMaxSize()
     ) {
         StyledScaffold(
-            title = stringResource(R.string.troubleshooting)
-        ){ spacerHeight, hazeState ->
+            topBar = {
+                StyledTopAppBar(
+                    title = {
+                        Text(stringResource(R.string.troubleshooting))
+                    }
+                )
+            },
+        ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -225,20 +230,17 @@ fun TroubleshootingScreen(navController: NavController) {
                     .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp)
             ) {
-                Spacer(modifier = Modifier.height(spacerHeight))
+//                Spacer(Modifier.height(spacerHeight))
 
                 Text(
                     text = stringResource(R.string.saved_logs),
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = textColor.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor.copy(alpha = 0.6f),
                     modifier = Modifier.padding(16.dp, bottom = 4.dp, top = 8.dp)
                 )
 
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(Modifier.height(2.dp))
 
                 if (savedLogs.isEmpty()) {
                     Column(
@@ -337,7 +339,7 @@ fun TroubleshootingScreen(navController: NavController) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
                 AnimatedVisibility(
                     visible = !showTroubleshootingSteps,
@@ -366,20 +368,17 @@ fun TroubleshootingScreen(navController: NavController) {
                         slideOutVertically(animationSpec = tween(300)) { it / 2 }
                 ) {
                     Column {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(Modifier.height(16.dp))
 
                         Text(
                             text = stringResource(R.string.troubleshooting_steps),
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Light,
-                                color = textColor.copy(alpha = 0.6f),
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            ),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Light,
+                            color = textColor.copy(alpha = 0.6f),
                             modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 8.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(Modifier.height(2.dp))
 
                         Column(
                             modifier = Modifier
@@ -403,7 +402,7 @@ fun TroubleshootingScreen(navController: NavController) {
                                 lineHeight = 22.sp
                             )
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(Modifier.height(16.dp))
 
                             when (currentStep) {
                                 0 -> {
@@ -517,7 +516,7 @@ fun TroubleshootingScreen(navController: NavController) {
                                             color = accentColor
                                         )
 
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(Modifier.height(8.dp))
 
                                         Text(
                                             text = if (currentStep == 2) "Preparing..." else "Collecting logs...",
@@ -526,7 +525,7 @@ fun TroubleshootingScreen(navController: NavController) {
                                         )
 
                                         if (currentStep == 3) {
-                                            Spacer(modifier = Modifier.height(16.dp))
+                                            Spacer(Modifier.height(16.dp))
 
                                             Button(
                                                 onClick = {
@@ -605,11 +604,11 @@ fun TroubleshootingScreen(navController: NavController) {
                                                 imageVector = Icons.Default.Share,
                                                 contentDescription = "Share"
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(Modifier.width(8.dp))
                                             Text("Share")
                                         }
 
-                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Spacer(Modifier.width(16.dp))
 
                                         Button(
                                             onClick = {
@@ -630,12 +629,12 @@ fun TroubleshootingScreen(navController: NavController) {
                                                 painter = painterResource(id = R.drawable.ic_save),
                                                 contentDescription = "Save"
                                             )
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(Modifier.width(8.dp))
                                             Text("Save")
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(Modifier.height(16.dp))
 
                                     Button(
                                         onClick = {
@@ -785,11 +784,8 @@ fun TroubleshootingScreen(navController: NavController) {
                     ) {
                         Text(
                             text = selectedLogFile?.name ?: "Log Content",
-                            style = TextStyle(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp,
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            ),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
                             color = textColor
                         )
                         Text(
@@ -797,7 +793,6 @@ fun TroubleshootingScreen(navController: NavController) {
                                 .format(Date(selectedLogFile?.lastModified() ?: 0)),
                             fontSize = 14.sp,
                             color = textColor.copy(alpha = 0.7f),
-                            fontFamily = FontFamily(Font(R.font.sf_pro))
                         )
                     }
 
@@ -880,7 +875,7 @@ fun TroubleshootingScreen(navController: NavController) {
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Share"
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text("Share")
                         }
 
@@ -901,7 +896,7 @@ fun TroubleshootingScreen(navController: NavController) {
                                 painter = painterResource(id = R.drawable.ic_save),
                                 contentDescription = "Save"
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text("Save")
                         }
                     }

@@ -24,12 +24,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -37,19 +36,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.constants.StemAction
+import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 
 @Composable
-fun PressAndHoldSettings(navController: NavController) {
+fun PressAndHoldSettings(
+    onNavigateToLeftLongPress: () -> Unit,
+    onNavigateToRightLongPress: () -> Unit
+) {
     val isDarkTheme = isSystemInDarkTheme()
     val textColor = if (isDarkTheme) Color.White else Color.Black
     val dividerColor = Color(0x40888888)
@@ -73,17 +72,13 @@ fun PressAndHoldSettings(navController: NavController) {
     }
     Box(
         modifier = Modifier
-            .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
             .padding(horizontal = 16.dp, vertical = 4.dp)
     ){
         Text(
             text = stringResource(R.string.press_and_hold_airpods),
-            style = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = textColor.copy(alpha = 0.6f),
-                fontFamily = FontFamily(Font(R.font.sf_pro))
-            )
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = textColor.copy(alpha = 0.6f)
         )
     }
     Column(
@@ -93,9 +88,8 @@ fun PressAndHoldSettings(navController: NavController) {
             .clip(RoundedCornerShape(28.dp))
     ) {
         NavigationButton(
-            to = "long_press/Left",
             name = stringResource(R.string.left),
-            navController = navController,
+            onClick = onNavigateToLeftLongPress,
             independent = false,
             currentState = leftActionText,
         )
@@ -106,9 +100,8 @@ fun PressAndHoldSettings(navController: NavController) {
                 .padding(horizontal = 16.dp)
         )
         NavigationButton(
-            to = "long_press/Right",
             name = stringResource(R.string.right),
-            navController = navController,
+            onClick = onNavigateToRightLongPress,
             independent = false,
             currentState = rightActionText,
         )
@@ -118,5 +111,12 @@ fun PressAndHoldSettings(navController: NavController) {
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun PressAndHoldSettingsPreview() {
-    PressAndHoldSettings(navController = NavController(LocalContext.current))
+    LibrePodsTheme {
+        Surface {
+            PressAndHoldSettings(
+                onNavigateToLeftLongPress = {},
+                onNavigateToRightLongPress = {}
+            )
+        }
+    }
 }

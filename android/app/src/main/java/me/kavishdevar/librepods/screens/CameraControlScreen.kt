@@ -18,25 +18,21 @@
 
 package me.kavishdevar.librepods.screens
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
-import android.accessibilityservice.AccessibilityServiceInfo
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,35 +41,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.core.content.edit
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.composables.SelectItem
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledSelectList
-import me.kavishdevar.librepods.composables.StyledSlider
-import me.kavishdevar.librepods.services.ServiceManager
 import me.kavishdevar.librepods.services.AppListenerService
-import me.kavishdevar.librepods.utils.AACPManager
+import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.AACPManager.Companion.StemPressType
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 private var debounceJob: Job? = null
 
 @SuppressLint("DefaultLocale")
-@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
 @Composable
-fun CameraControlScreen(navController: NavController) {
+fun CameraControlScreen() {
     val isDarkTheme = isSystemInDarkTheme()
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -130,16 +117,22 @@ fun CameraControlScreen(navController: NavController) {
     val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
-        title = stringResource(R.string.camera_control)
-    ) { spacerHeight ->
-        Column(
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.camera_control))
+                }
+            )
+        },
+    ) { innerPadding ->
+    Column(
             modifier = Modifier
                 .fillMaxSize()
                 .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
             StyledSelectList(items = cameraOptions)
         }
     }

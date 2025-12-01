@@ -45,13 +45,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import me.kavishdevar.librepods.R
 
 data class SelectItem(
     val name: String,
@@ -139,14 +134,12 @@ fun StyledSelectList(
                         item.name,
                         fontSize = 16.sp,
                         color = textColor,
-                        fontFamily = FontFamily(Font(R.font.sf_pro)),
                     )
                     item.description?.let {
                         Text(
                             it,
                             fontSize = 14.sp,
                             color = textColor.copy(alpha = 0.6f),
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
                         )
                     }
                 }
@@ -156,11 +149,8 @@ fun StyledSelectList(
                 )
                 Text(
                     text = "􀆅",
-                    style = TextStyle(
-                        fontSize = 20.sp,
-                        fontFamily = FontFamily(Font(R.font.sf_pro)),
-                        color = Color(0xFF007AFF).copy(alpha = floatAnimateState),
-                    ),
+                    fontSize = 20.sp,
+                    color = Color(0xFF007AFF).copy(alpha = floatAnimateState),
                     modifier = Modifier.padding(end = 4.dp)
                 )
             }

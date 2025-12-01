@@ -16,8 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.composables
 
 import androidx.compose.foundation.background
@@ -28,53 +26,43 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.kyant.backdrop.Backdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.services.ServiceManager
-import me.kavishdevar.librepods.utils.AACPManager
-import me.kavishdevar.librepods.utils.ATTHandles
-import me.kavishdevar.librepods.utils.Capability
-import kotlin.io.encoding.ExperimentalEncodingApi
+import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 
 @Composable
-fun AudioSettings(navController: NavController) {
+fun AudioSettings(
+    backdrop: Backdrop,
+    hasAdaptiveVolume: Boolean,
+    hasConversationAwareness: Boolean,
+    hasLoudSoundReduction: Boolean,
+    hasAdaptiveAudio: Boolean,
+    onNavigateToAdaptiveStrength: () -> Unit
+) {
     val isDarkTheme = isSystemInDarkTheme()
-    val textColor = if (isDarkTheme) Color.White else Color.Black
-    val service = ServiceManager.getService()
-    if (service == null) return
-    val airpodsInstance = service.airpodsInstance
-    if (airpodsInstance == null) return
-    if (!airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_VOLUME) &&
-        !airpodsInstance.model.capabilities.contains(Capability.CONVERSATION_AWARENESS) &&
-        !airpodsInstance.model.capabilities.contains(Capability.LOUD_SOUND_REDUCTION) &&
-        !airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_AUDIO)
-    ) {
-        return
-    }
+
     Box(
         modifier = Modifier
-            .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
             .padding(horizontal = 16.dp, vertical = 4.dp)
     ){
         Text(
             text = stringResource(R.string.audio),
-            style = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = textColor.copy(alpha = 0.6f)
-            )
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = LocalTextStyle.current.color.copy(alpha = 0.6f)
         )
     }
 
@@ -88,12 +76,14 @@ fun AudioSettings(navController: NavController) {
             .padding(top = 2.dp)
     ) {
 
-        if (airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_VOLUME)) {
+        if (hasAdaptiveVolume) {
             StyledToggle(
                 label = stringResource(R.string.personalized_volume),
                 description = stringResource(R.string.personalized_volume_description),
-                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.ADAPTIVE_VOLUME_CONFIG,
-                independent = false
+                isChecked = false,
+                onCheckedChange = {},
+                independent = false,
+                backdrop = backdrop
             )
 
             HorizontalDivider(
@@ -104,12 +94,14 @@ fun AudioSettings(navController: NavController) {
             )
         }
 
-        if (airpodsInstance.model.capabilities.contains(Capability.CONVERSATION_AWARENESS)) {
+        if (hasConversationAwareness) {
             StyledToggle(
                 label = stringResource(R.string.conversational_awareness),
                 description = stringResource(R.string.conversational_awareness_description),
-                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG,
-                independent = false
+                isChecked = false,
+                onCheckedChange = {},
+                independent = false,
+                backdrop = backdrop
             )
             HorizontalDivider(
                 thickness = 1.dp,
@@ -119,12 +111,14 @@ fun AudioSettings(navController: NavController) {
             )
         }
 
-        if (airpodsInstance.model.capabilities.contains(Capability.LOUD_SOUND_REDUCTION)){
+        if (hasLoudSoundReduction){
             StyledToggle(
                 label = stringResource(R.string.loud_sound_reduction),
                 description = stringResource(R.string.loud_sound_reduction_description),
-                attHandle = ATTHandles.LOUD_SOUND_REDUCTION,
-                independent = false
+                isChecked = false,
+                onCheckedChange = {},
+                independent = false,
+                backdrop = backdrop
             )
             HorizontalDivider(
                 thickness = 1.dp,
@@ -134,11 +128,10 @@ fun AudioSettings(navController: NavController) {
             )
         }
 
-        if (airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_AUDIO)) {
+        if (hasAdaptiveAudio) {
             NavigationButton(
-                to = "adaptive_strength",
                 name = stringResource(R.string.adaptive_audio),
-                navController = navController,
+                onClick = onNavigateToAdaptiveStrength,
                 independent = false
             )
         }
@@ -148,5 +141,16 @@ fun AudioSettings(navController: NavController) {
 @Preview
 @Composable
 fun AudioSettingsPreview() {
-    AudioSettings(rememberNavController())
+    LibrePodsTheme {
+        Surface {
+            AudioSettings(
+                hasAdaptiveVolume = true,
+                hasConversationAwareness = true,
+                hasLoudSoundReduction = true,
+                hasAdaptiveAudio = true,
+                onNavigateToAdaptiveStrength = {},
+                backdrop = rememberLayerBackdrop()
+            )
+        }
+    }
 }

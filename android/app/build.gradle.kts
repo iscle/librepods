@@ -1,9 +1,13 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.aboutLibraries)
     id("kotlin-parcelize")
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -27,26 +31,35 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+            optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
+        }
     }
+
     buildFeatures {
         compose = true
         viewBinding = true
     }
+
     androidResources {
         generateLocaleConfig = true
     }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
+
     sourceSets {
         getByName("main") {
             res.srcDirs("src/main/res", "src/main/res-apple")
@@ -65,22 +78,27 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons)
     implementation(libs.annotations)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.haze)
     implementation(libs.haze.materials)
     implementation(libs.androidx.dynamicanimation)
-    implementation(libs.androidx.compose.ui)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.aboutlibraries)
     implementation(libs.aboutlibraries.compose.m3)
-    // compileOnly(fileTree(mapOf("dir" to "libs", "include" to listOf("*.aar"))))
-    // implementation(fileTree(mapOf("dir" to "lib", "include" to listOf("*.aar"))))
+    implementation(libs.backdrop)
+    implementation(libs.capsule)
+    implementation(libs.timber)
     compileOnly(files("libs/libxposed-api-100.aar"))
-    debugImplementation(files("libs/backdrop-debug.aar"))
-    releaseImplementation(files("libs/backdrop-release.aar"))
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
+    ksp(libs.hilt.android.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }
 
 aboutLibraries {

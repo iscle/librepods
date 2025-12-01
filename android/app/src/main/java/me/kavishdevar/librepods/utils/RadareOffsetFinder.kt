@@ -16,30 +16,26 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.utils
 
 import android.content.Context
-import android.util.Log
 import androidx.compose.runtime.NoLiveLiterals
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import me.kavishdevar.librepods.services.ServiceManager
+import timber.log.Timber
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 @NoLiveLiterals
 class RadareOffsetFinder(context: Context) {
     companion object {
-        private const val TAG = "RadareOffsetFinder"
         private const val RADARE2_URL = "https://hc-cdn.hel1.your-objectstorage.com/s/v3/c9898243c42c0d3d1387de9a37d57ce9df77f9c9_radare2-5.9.9-android-aarch64.tar.gz"
         private const val HOOK_OFFSET_PROP = "persist.librepods.hook_offset"
         private const val CFG_REQ_OFFSET_PROP = "persist.librepods.cfg_req_offset"
@@ -63,11 +59,11 @@ class RadareOffsetFinder(context: Context) {
         fun findBluetoothLibraryPath(): String? {
             for (path in LIBRARY_PATHS) {
                 if (File(path).exists()) {
-                    Log.d(TAG, "Found Bluetooth library at $path")
+                    Timber.d("Found Bluetooth library at $path")
                     return path
                 }
             }
-            Log.e(TAG, "Could not find Bluetooth library")
+            Timber.e("Could not find Bluetooth library")
             return null
         }
 
@@ -84,13 +80,13 @@ class RadareOffsetFinder(context: Context) {
                 val exitCode = process.waitFor()
 
                 if (exitCode == 0) {
-                    Log.d(TAG, "Successfully cleared hook offset properties")
+                    Timber.d("Successfully cleared hook offset properties")
                     return true
                 } else {
-                    Log.e(TAG, "Failed to clear hook offset properties, exit code: $exitCode")
+                    Timber.e("Failed to clear hook offset properties, exit code: $exitCode")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error clearing hook offset properties", e)
+                Timber.e(e, "Error clearing hook offset properties")
             }
             return false
         }
@@ -103,13 +99,13 @@ class RadareOffsetFinder(context: Context) {
                 val exitCode = process.waitFor()
 
                 if (exitCode == 0) {
-                    Log.d(TAG, "Successfully cleared SDP offset property")
+                    Timber.d("Successfully cleared SDP offset property")
                     return true
                 } else {
-                    Log.e(TAG, "Failed to clear SDP offset property, exit code: $exitCode")
+                    Timber.e("Failed to clear SDP offset property, exit code: $exitCode")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error clearing SDP offset property", e)
+                Timber.e(e, "Error clearing SDP offset property")
             }
             return false
         }
@@ -122,14 +118,14 @@ class RadareOffsetFinder(context: Context) {
                 process.waitFor()
 
                 if (propValue != null && propValue.isNotEmpty()) {
-                    Log.d(TAG, "SDP offset property exists: $propValue")
+                    Timber.d("SDP offset property exists: $propValue")
                     return true
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error checking if SDP offset property exists", e)
+                Timber.e(e, "Error checking if SDP offset property exists")
             }
 
-            Log.d(TAG, "No SDP offset available")
+            Timber.d("No SDP offset available")
             return false
         }
     }
@@ -155,9 +151,14 @@ class RadareOffsetFinder(context: Context) {
 
 
     fun isHookOffsetAvailable(): Boolean {
-        Log.d(TAG, "Setup Skipped? " + ServiceManager.getService()?.applicationContext?.getSharedPreferences("settings", Context.MODE_PRIVATE)?.getBoolean("skip_setup", false).toString())
+        Timber.d(
+            "Setup Skipped? %s", ServiceManager.getService()?.applicationContext?.getSharedPreferences(
+                "settings",
+                Context.MODE_PRIVATE
+            )?.getBoolean("skip_setup", false).toString()
+        )
         if (ServiceManager.getService()?.applicationContext?.getSharedPreferences("settings", Context.MODE_PRIVATE)?.getBoolean("skip_setup", false) == true) {
-            Log.d(TAG, "Setup skipped, returning true.")
+            Timber.d("Setup skipped, returning true.")
             return true
         }
         _progressState.value = ProgressState.CheckingExisting
@@ -168,16 +169,16 @@ class RadareOffsetFinder(context: Context) {
             process.waitFor()
 
             if (propValue != null && propValue.isNotEmpty()) {
-                Log.d(TAG, "Hook offset property exists: $propValue")
+                Timber.d("Hook offset property exists: $propValue")
                 _progressState.value = ProgressState.Idle
                 return true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking if offset property exists", e)
+            Timber.e(e, "Error checking if offset property exists")
             _progressState.value = ProgressState.Error("Failed to check if offset property exists: ${e.message}")
         }
 
-        Log.d(TAG, "No hook offset available")
+        Timber.d("No hook offset available")
         _progressState.value = ProgressState.Idle
         return false
     }
@@ -192,21 +193,21 @@ class RadareOffsetFinder(context: Context) {
             _progressState.value = ProgressState.Downloading
             if (!downloadRadare2TarballIfNeeded()) {
                 _progressState.value = ProgressState.Error("Failed to download radare2 tarball")
-                Log.e(TAG, "Failed to download radare2 tarball")
+                Timber.e("Failed to download radare2 tarball")
                 return@withContext 0L
             }
 
             _progressState.value = ProgressState.Extracting
             if (!extractRadare2Tarball()) {
                 _progressState.value = ProgressState.Error("Failed to extract radare2 tarball")
-                Log.e(TAG, "Failed to extract radare2 tarball")
+                Timber.e("Failed to extract radare2 tarball")
                 return@withContext 0L
             }
 
             _progressState.value = ProgressState.MakingExecutable
             if (!makeExecutable()) {
                 _progressState.value = ProgressState.Error("Failed to make binaries executable")
-                Log.e(TAG, "Failed to make binaries executable")
+                Timber.e("Failed to make binaries executable")
                 return@withContext 0L
             }
 
@@ -214,14 +215,14 @@ class RadareOffsetFinder(context: Context) {
             val offset = findFunctionOffset()
             if (offset == 0L) {
                 _progressState.value = ProgressState.Error("Failed to find function offset")
-                Log.e(TAG, "Failed to find function offset")
+                Timber.e("Failed to find function offset")
                 return@withContext 0L
             }
 
             _progressState.value = ProgressState.SavingOffset
             if (!saveOffset(offset)) {
                 _progressState.value = ProgressState.Error("Failed to save offset")
-                Log.e(TAG, "Failed to save offset")
+                Timber.e("Failed to save offset")
                 return@withContext 0L
             }
 
@@ -233,14 +234,14 @@ class RadareOffsetFinder(context: Context) {
 
         } catch (e: Exception) {
             _progressState.value = ProgressState.Error("Error: ${e.message}")
-            Log.e(TAG, "Error in findOffset", e)
+            Timber.e(e, "Error in findOffset")
             return@withContext 0L
         }
     }
 
     private suspend fun downloadRadare2TarballIfNeeded(): Boolean = withContext(Dispatchers.IO) {
         if (radare2TarballFile.exists() && radare2TarballFile.length() > 0) {
-            Log.d(TAG, "Radare2 tarball already downloaded to ${radare2TarballFile.absolutePath}")
+            Timber.d("Radare2 tarball already downloaded to ${radare2TarballFile.absolutePath}")
             return@withContext true
         }
 
@@ -270,10 +271,10 @@ class RadareOffsetFinder(context: Context) {
             outputStream.close()
             inputStream.close()
 
-            Log.d(TAG, "Download successful to ${radare2TarballFile.absolutePath}")
+            Timber.d("Download successful to ${radare2TarballFile.absolutePath}")
             return@withContext true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to download radare2 tarball", e)
+            Timber.e(e, "Failed to download radare2 tarball")
             return@withContext false
         }
     }
@@ -283,16 +284,16 @@ class RadareOffsetFinder(context: Context) {
             val isAlreadyExtracted = checkIfAlreadyExtracted()
 
             if (isAlreadyExtracted) {
-                Log.d(TAG, "Radare2 files already extracted correctly, skipping extraction")
+                Timber.d("Radare2 files already extracted correctly, skipping extraction")
                 return@withContext true
             }
 
-            Log.d(TAG, "Removing existing extract directory")
+            Timber.d("Removing existing extract directory")
             Runtime.getRuntime().exec(arrayOf("su", "-c", "rm -rf $EXTRACT_DIR/data/local/tmp/aln_unzip")).waitFor()
 
             Runtime.getRuntime().exec(arrayOf("su", "-c", "mkdir -p $EXTRACT_DIR/data/local/tmp/aln_unzip")).waitFor()
 
-            Log.d(TAG, "Extracting ${radare2TarballFile.absolutePath} to $EXTRACT_DIR")
+            Timber.d("Extracting ${radare2TarballFile.absolutePath} to $EXTRACT_DIR")
 
             val process = Runtime.getRuntime().exec(
                 arrayOf("su", "-c", "tar xvf ${radare2TarballFile.absolutePath} -C $EXTRACT_DIR")
@@ -303,23 +304,23 @@ class RadareOffsetFinder(context: Context) {
 
             var line: String?
             while (reader.readLine().also { line = it } != null) {
-                Log.d(TAG, "Extract output: $line")
+                Timber.d("Extract output: $line")
             }
 
             while (errorReader.readLine().also { line = it } != null) {
-                Log.e(TAG, "Extract error: $line")
+                Timber.e("Extract error: $line")
             }
 
             val exitCode = process.waitFor()
             if (exitCode == 0) {
-                Log.d(TAG, "Extraction completed successfully")
+                Timber.d("Extraction completed successfully")
                 return@withContext true
             } else {
-                Log.e(TAG, "Extraction failed with exit code $exitCode")
+                Timber.e("Extraction failed with exit code $exitCode")
                 return@withContext false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to extract radare2", e)
+            Timber.e(e, "Failed to extract radare2")
             return@withContext false
         }
     }
@@ -333,7 +334,7 @@ class RadareOffsetFinder(context: Context) {
             checkDirProcess.waitFor()
 
             if (!dirExists) {
-                Log.d(TAG, "Extract directory doesn't exist, need to extract")
+                Timber.d("Extract directory doesn't exist, need to extract")
                 return@withContext false
             }
 
@@ -347,7 +348,7 @@ class RadareOffsetFinder(context: Context) {
             tarProcess.waitFor()
 
             if (tarFiles.isEmpty()) {
-                Log.e(TAG, "Failed to get file list from tarball")
+                Timber.e("Failed to get file list from tarball")
                 return@withContext false
             }
 
@@ -361,7 +362,7 @@ class RadareOffsetFinder(context: Context) {
             findProcess.waitFor()
 
             if (extractedFiles.isEmpty()) {
-                Log.d(TAG, "No files found in extract directory, need to extract")
+                Timber.d("No files found in extract directory, need to extract")
                 return@withContext false
             }
 
@@ -376,42 +377,42 @@ class RadareOffsetFinder(context: Context) {
                 fileCheckProcess.waitFor()
 
                 if (!fileExists) {
-                    Log.d(TAG, "File $filePathInExtractDir from tarball missing in extract directory")
+                    Timber.d("File $filePathInExtractDir from tarball missing in extract directory")
                     Runtime.getRuntime().exec(arrayOf("su", "-c", "rm -rf $EXTRACT_DIR/data/local/tmp/aln_unzip")).waitFor()
                     return@withContext false
                 }
             }
 
-            Log.d(TAG, "All ${tarFiles.size} files from tarball exist in extract directory")
+            Timber.d("All ${tarFiles.size} files from tarball exist in extract directory")
             return@withContext true
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking extraction status", e)
+            Timber.e(e, "Error checking extraction status")
             return@withContext false
         }
     }
 
     private suspend fun makeExecutable(): Boolean = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "Making binaries executable in $RADARE2_BIN_PATH")
+            Timber.d("Making binaries executable in $RADARE2_BIN_PATH")
             val chmod1Result = Runtime.getRuntime().exec(
                 arrayOf("su", "-c", "chmod -R 755 $RADARE2_BIN_PATH")
             ).waitFor()
 
-            Log.d(TAG, "Making binaries executable in $BUSYBOX_PATH")
+            Timber.d("Making binaries executable in $BUSYBOX_PATH")
 
             val chmod2Result = Runtime.getRuntime().exec(
                 arrayOf("su", "-c", "chmod -R 755 $BUSYBOX_PATH")
             ).waitFor()
 
             if (chmod1Result == 0 && chmod2Result == 0) {
-                Log.d(TAG, "Successfully made binaries executable")
+                Timber.d("Successfully made binaries executable")
                 return@withContext true
             } else {
-                Log.e(TAG, "Failed to make binaries executable, exit codes: $chmod1Result, $chmod2Result")
+                Timber.e("Failed to make binaries executable, exit codes: $chmod1Result, $chmod2Result")
                 return@withContext false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error making binaries executable", e)
+            Timber.e(e, "Error making binaries executable")
             return@withContext false
         }
     }
@@ -429,7 +430,7 @@ class RadareOffsetFinder(context: Context) {
             """.trimIndent()
 
             val command = "$envSetup && $RADARE2_BIN_PATH/rabin2 -q -E $libraryPath | grep fcr_chk_chan"
-            Log.d(TAG, "Running command: $command")
+            Timber.d("Running command: $command")
 
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
 
@@ -439,185 +440,50 @@ class RadareOffsetFinder(context: Context) {
             var line: String?
 
             while (reader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 output: $line")
+                Timber.d("rabin2 output: $line")
                 if (line?.contains("fcr_chk_chan") == true) {
                     val parts = line.split(" ")
                     if (parts.isNotEmpty() && parts[0].startsWith("0x")) {
                         offset = parts[0].substring(2).toLong(16)
-                        Log.d(TAG, "Found offset at ${parts[0]}")
+                        Timber.d("Found offset at ${parts[0]}")
                         break
                     }
                 }
             }
 
             while (errorReader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 error: $line")
+                Timber.d("rabin2 error: $line")
             }
 
             val exitCode = process.waitFor()
             if (exitCode != 0) {
-                Log.e(TAG, "rabin2 command failed with exit code $exitCode")
+                Timber.e("rabin2 command failed with exit code $exitCode")
             }
 
 //            findAndSaveL2cuProcessCfgReqOffset(libraryPath, envSetup)
 //            findAndSaveL2cCsmConfigOffset(libraryPath, envSetup)
 //            findAndSaveL2cuSendPeerInfoReqOffset(libraryPath, envSetup)
-            
+
             // findAndSaveSdpOffset(libraryPath, envSetup) Should not be run by default, only when user asks for it.
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to find function offset", e)
+            Timber.e(e, "Failed to find function offset")
             return@withContext 0L
         }
 
         if (offset == 0L) {
-            Log.e(TAG, "Failed to extract function offset from output, aborting")
+            Timber.e("Failed to extract function offset from output, aborting")
             return@withContext 0L
         }
 
-        Log.d(TAG, "Successfully found offset: 0x${offset.toString(16)}")
+        Timber.d("Successfully found offset: 0x${offset.toString(16)}")
         return@withContext offset
-    }
-
-    private suspend fun findAndSaveL2cuProcessCfgReqOffset(libraryPath: String, envSetup: String) = withContext(Dispatchers.IO) {
-        try {
-            val command = "$envSetup && $RADARE2_BIN_PATH/rabin2 -q -E $libraryPath | grep l2cu_process_our_cfg_req"
-            Log.d(TAG, "Running command: $command")
-
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val errorReader = BufferedReader(InputStreamReader(process.errorStream))
-
-            var line: String?
-            var offset = 0L
-
-            while (reader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 output: $line")
-                if (line?.contains("l2cu_process_our_cfg_req") == true) {
-                    val parts = line.split(" ")
-                    if (parts.isNotEmpty() && parts[0].startsWith("0x")) {
-                        offset = parts[0].substring(2).toLong(16)
-                        Log.d(TAG, "Found l2cu_process_our_cfg_req offset at ${parts[0]}")
-                        break
-                    }
-                }
-            }
-
-            while (errorReader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 error: $line")
-            }
-
-            val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                Log.e(TAG, "rabin2 command failed with exit code $exitCode")
-            }
-
-            if (offset > 0L) {
-                val hexString = "0x${offset.toString(16)}"
-                Runtime.getRuntime().exec(arrayOf(
-                    "su", "-c", "/system/bin/setprop $CFG_REQ_OFFSET_PROP $hexString"
-                )).waitFor()
-                Log.d(TAG, "Saved l2cu_process_our_cfg_req offset: $hexString")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to find or save l2cu_process_our_cfg_req offset", e)
-        }
-    }
-
-    private suspend fun findAndSaveL2cCsmConfigOffset(libraryPath: String, envSetup: String) = withContext(Dispatchers.IO) {
-        try {
-            val command = "$envSetup && $RADARE2_BIN_PATH/rabin2 -q -E $libraryPath | grep l2c_csm_config"
-            Log.d(TAG, "Running command: $command")
-
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val errorReader = BufferedReader(InputStreamReader(process.errorStream))
-
-            var line: String?
-            var offset = 0L
-
-            while (reader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 output: $line")
-                if (line?.contains("l2c_csm_config") == true) {
-                    val parts = line.split(" ")
-                    if (parts.isNotEmpty() && parts[0].startsWith("0x")) {
-                        offset = parts[0].substring(2).toLong(16)
-                        Log.d(TAG, "Found l2c_csm_config offset at ${parts[0]}")
-                        break
-                    }
-                }
-            }
-
-            while (errorReader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 error: $line")
-            }
-
-            val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                Log.e(TAG, "rabin2 command failed with exit code $exitCode")
-            }
-
-            if (offset > 0L) {
-                val hexString = "0x${offset.toString(16)}"
-                Runtime.getRuntime().exec(arrayOf(
-                    "su", "-c", "/system/bin/setprop $CSM_CONFIG_OFFSET_PROP $hexString"
-                )).waitFor()
-                Log.d(TAG, "Saved l2c_csm_config offset: $hexString")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to find or save l2c_csm_config offset", e)
-        }
-    }
-
-    private suspend fun findAndSaveL2cuSendPeerInfoReqOffset(libraryPath: String, envSetup: String) = withContext(Dispatchers.IO) {
-        try {
-            val command = "$envSetup && $RADARE2_BIN_PATH/rabin2 -q -E $libraryPath | grep l2cu_send_peer_info_req"
-            Log.d(TAG, "Running command: $command")
-
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val errorReader = BufferedReader(InputStreamReader(process.errorStream))
-
-            var line: String?
-            var offset = 0L
-
-            while (reader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 output: $line")
-                if (line?.contains("l2cu_send_peer_info_req") == true) {
-                    val parts = line.split(" ")
-                    if (parts.isNotEmpty() && parts[0].startsWith("0x")) {
-                        offset = parts[0].substring(2).toLong(16)
-                        Log.d(TAG, "Found l2cu_send_peer_info_req offset at ${parts[0]}")
-                        break
-                    }
-                }
-            }
-
-            while (errorReader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 error: $line")
-            }
-
-            val exitCode = process.waitFor()
-            if (exitCode != 0) {
-                Log.e(TAG, "rabin2 command failed with exit code $exitCode")
-            }
-
-            if (offset > 0L) {
-                val hexString = "0x${offset.toString(16)}"
-                Runtime.getRuntime().exec(arrayOf(
-                    "su", "-c", "/system/bin/setprop $PEER_INFO_REQ_OFFSET_PROP $hexString"
-                )).waitFor()
-                Log.d(TAG, "Saved l2cu_send_peer_info_req offset: $hexString")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to find or save l2cu_send_peer_info_req offset", e)
-        }
     }
 
     private suspend fun findAndSaveSdpOffset(libraryPath: String, envSetup: String) = withContext(Dispatchers.IO) {
         try {
             val command = "$envSetup && $RADARE2_BIN_PATH/rabin2 -q -E $libraryPath | grep DmSetLocalDiRecord"
-            Log.d(TAG, "Running command: $command")
+            Timber.d("Running command: $command")
 
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
             val reader = BufferedReader(InputStreamReader(process.inputStream))
@@ -627,24 +493,24 @@ class RadareOffsetFinder(context: Context) {
             var offset = 0L
 
             while (reader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 output: $line")
+                Timber.d("rabin2 output: $line")
                 if (line?.contains("DmSetLocalDiRecord") == true) {
                     val parts = line.split(" ")
                     if (parts.isNotEmpty() && parts[0].startsWith("0x")) {
                         offset = parts[0].substring(2).toLong(16)
-                        Log.d(TAG, "Found DmSetLocalDiRecord offset at ${parts[0]}")
+                        Timber.d("Found DmSetLocalDiRecord offset at ${parts[0]}")
                         break
                     }
                 }
             }
 
             while (errorReader.readLine().also { line = it } != null) {
-                Log.d(TAG, "rabin2 error: $line")
+                Timber.d("rabin2 error: $line")
             }
 
             val exitCode = process.waitFor()
             if (exitCode != 0) {
-                Log.e(TAG, "rabin2 command failed with exit code $exitCode")
+                Timber.e("rabin2 command failed with exit code $exitCode")
             }
 
             if (offset > 0L) {
@@ -652,17 +518,17 @@ class RadareOffsetFinder(context: Context) {
                 Runtime.getRuntime().exec(arrayOf(
                     "su", "-c", "/system/bin/setprop $SDP_OFFSET_PROP $hexString"
                 )).waitFor()
-                Log.d(TAG, "Saved DmSetLocalDiRecord offset: $hexString")
+                Timber.d("Saved DmSetLocalDiRecord offset: $hexString")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to find or save DmSetLocalDiRecord offset", e)
+            Timber.e(e, "Failed to find or save DmSetLocalDiRecord offset")
         }
     }
 
     private suspend fun saveOffset(offset: Long): Boolean = withContext(Dispatchers.IO) {
         try {
             val hexString = "0x${offset.toString(16)}"
-            Log.d(TAG, "Saving offset to system property: $hexString")
+            Timber.d("Saving offset to system property: $hexString")
 
             val process = Runtime.getRuntime().exec(arrayOf(
                 "su", "-c", "/system/bin/setprop $HOOK_OFFSET_PROP $hexString"
@@ -677,17 +543,17 @@ class RadareOffsetFinder(context: Context) {
                 verifyProcess.waitFor()
 
                 if (propValue != null && propValue.isNotEmpty()) {
-                    Log.d(TAG, "Successfully saved offset to system property: $propValue")
+                    Timber.d("Successfully saved offset to system property: $propValue")
                     return@withContext true
                 } else {
-                    Log.e(TAG, "Property was set but couldn't be verified")
+                    Timber.e("Property was set but couldn't be verified")
                 }
             } else {
-                Log.e(TAG, "Failed to set property, exit code: $exitCode")
+                Timber.e("Failed to set property, exit code: $exitCode")
             }
             return@withContext false
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to save offset", e)
+            Timber.e(e, "Failed to save offset")
             return@withContext false
         }
     }
@@ -695,9 +561,9 @@ class RadareOffsetFinder(context: Context) {
     private fun cleanupExtractedFiles() {
         try {
             Runtime.getRuntime().exec(arrayOf("su", "-c", "rm -rf $EXTRACT_DIR/data/local/tmp/aln_unzip")).waitFor()
-            Log.d(TAG, "Cleaned up extracted files at $EXTRACT_DIR/data/local/tmp/aln_unzip")
+            Timber.d("Cleaned up extracted files at $EXTRACT_DIR/data/local/tmp/aln_unzip")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to cleanup extracted files", e)
+            Timber.e(e, "Failed to cleanup extracted files")
         }
     }
 
@@ -706,21 +572,21 @@ class RadareOffsetFinder(context: Context) {
             _progressState.value = ProgressState.Downloading
             if (!downloadRadare2TarballIfNeeded()) {
                 _progressState.value = ProgressState.Error("Failed to download radare2 tarball")
-                Log.e(TAG, "Failed to download radare2 tarball")
+                Timber.e("Failed to download radare2 tarball")
                 return@withContext false
             }
 
             _progressState.value = ProgressState.Extracting
             if (!extractRadare2Tarball()) {
                 _progressState.value = ProgressState.Error("Failed to extract radare2 tarball")
-                Log.e(TAG, "Failed to extract radare2 tarball")
+                Timber.e("Failed to extract radare2 tarball")
                 return@withContext false
             }
 
             _progressState.value = ProgressState.MakingExecutable
             if (!makeExecutable()) {
                 _progressState.value = ProgressState.Error("Failed to make binaries executable")
-                Log.e(TAG, "Failed to make binaries executable")
+                Timber.e("Failed to make binaries executable")
                 return@withContext false
             }
 
@@ -728,7 +594,7 @@ class RadareOffsetFinder(context: Context) {
             val libraryPath = findBluetoothLibraryPath()
             if (libraryPath == null) {
                 _progressState.value = ProgressState.Error("Failed to find Bluetooth library")
-                Log.e(TAG, "Failed to find Bluetooth library")
+                Timber.e("Failed to find Bluetooth library")
                 return@withContext false
             }
 
@@ -749,7 +615,7 @@ class RadareOffsetFinder(context: Context) {
 
         } catch (e: Exception) {
             _progressState.value = ProgressState.Error("Error: ${e.message}")
-            Log.e(TAG, "Error in findSdpOffset", e)
+            Timber.e(e, "Error in findSdpOffset")
             return@withContext false
         }
     }

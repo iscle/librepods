@@ -25,15 +25,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,29 +49,24 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class)
+@OptIn(ExperimentalHazeMaterialsApi::class)
 @Composable
-fun RenameScreen(navController: NavController) {
+fun RenameScreen() {
     val sharedPreferences = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val isDarkTheme = isSystemInDarkTheme()
     val name = remember { mutableStateOf(TextFieldValue(sharedPreferences.getString("name", "") ?: "")) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -86,15 +80,21 @@ fun RenameScreen(navController: NavController) {
     val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
-        title = stringResource(R.string.name),
-    ) { spacerHeight ->
-        Column(
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.name))
+                }
+            )
+        },
+    ) { innerPadding ->
+    Column(
             modifier = Modifier
                 .fillMaxSize()
                 .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
             val isDarkTheme = isSystemInDarkTheme()
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
             val textColor = if (isDarkTheme) Color.White else Color.Black
@@ -117,10 +117,9 @@ fun RenameScreen(navController: NavController) {
                         sharedPreferences.edit {putString("name", it.text)}
                         ServiceManager.getService()?.setName(it.text)
                     },
-                    textStyle = TextStyle(
+                    textStyle = LocalTextStyle.current.copy(
                         fontSize = 16.sp,
-                        color = textColor,
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
+                        color = textColor
                     ),
                     singleLine = true,
                     cursorBrush = SolidColor(cursorColor),
@@ -141,11 +140,8 @@ fun RenameScreen(navController: NavController) {
                             ) {
                                 Text(
                                     text = "􀁡",
-                                    style = TextStyle(
-                                      fontSize = 16.sp,
-                                        fontFamily = FontFamily(Font(R.font.sf_pro)),
-                                        color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
-                                    ),
+                                    fontSize = 16.sp,
+                                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
                                 )
                             }
                         }
@@ -163,5 +159,5 @@ fun RenameScreen(navController: NavController) {
 @Preview
 @Composable
 fun RenameScreenPreview() {
-    RenameScreen(navController = NavController(LocalContext.current))
+    RenameScreen()
 }

@@ -54,35 +54,33 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.composables.NavigationButton
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledSlider
-import me.kavishdevar.librepods.composables.StyledToggle
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.RadareOffsetFinder
 import kotlin.io.encoding.Base64
@@ -91,7 +89,12 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeMaterialsApi::class, ExperimentalEncodingApi::class)
 @Composable
-fun AppSettingsScreen(navController: NavController) {
+fun AppSettingsScreen(
+    onNavigateToTroubleshooting: () -> Unit,
+    onNavigateToOpenSourceLicenses: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
+    onShowCameraPackageDialog: () -> Unit,
+) {
     val sharedPreferences = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
     val isDarkTheme = isSystemInDarkTheme()
@@ -192,8 +195,14 @@ fun AppSettingsScreen(navController: NavController) {
     val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
-        title = stringResource(R.string.app_settings)
-    ) { spacerHeight, hazeState ->
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.app_settings))
+                }
+            )
+        },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -202,33 +211,30 @@ fun AppSettingsScreen(navController: NavController) {
                 .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
 
             val isDarkTheme = isSystemInDarkTheme()
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
             val textColor = if (isDarkTheme) Color.White else Color.Black
 
-            StyledToggle(
-                title = stringResource(R.string.widget),
-                label = stringResource(R.string.show_phone_battery_in_widget),
-                description = stringResource(R.string.show_phone_battery_in_widget_description),
-                checkedState = showPhoneBatteryInWidget,
-                sharedPreferenceKey = "show_phone_battery_in_widget",
-                sharedPreferences = sharedPreferences,
-            )
+//            StyledToggle(
+//                title = stringResource(R.string.widget),
+//                label = stringResource(R.string.show_phone_battery_in_widget),
+//                description = stringResource(R.string.show_phone_battery_in_widget_description),
+//                checkedState = showPhoneBatteryInWidget,
+//                sharedPreferenceKey = "show_phone_battery_in_widget",
+//                sharedPreferences = sharedPreferences,
+//            )
 
             Text(
                 text = stringResource(R.string.conversational_awareness),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor.copy(alpha = 0.6f),
                 modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 24.dp)
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(Modifier.height(2.dp))
 
             Column (
                 modifier = Modifier
@@ -249,13 +255,13 @@ fun AppSettingsScreen(navController: NavController) {
                     sharedPreferences.edit { putBoolean("relative_conversational_awareness_volume", enabled)}
                 }
 
-                StyledToggle(
-                    label = stringResource(R.string.conversational_awareness_pause_music),
-                    description = stringResource(R.string.conversational_awareness_pause_music_description),
-                    checkedState = conversationalAwarenessPauseMusicEnabled,
-                    onCheckedChange = { updateConversationalAwarenessPauseMusic(it) },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.conversational_awareness_pause_music),
+//                    description = stringResource(R.string.conversational_awareness_pause_music_description),
+//                    checkedState = conversationalAwarenessPauseMusicEnabled,
+//                    onCheckedChange = { updateConversationalAwarenessPauseMusic(it) },
+//                    independent = false
+//                )
 
                 HorizontalDivider(
                     thickness = 1.dp,
@@ -264,80 +270,75 @@ fun AppSettingsScreen(navController: NavController) {
                         .padding(horizontal = 12.dp)
                 )
 
-                StyledToggle(
-                    label = stringResource(R.string.relative_conversational_awareness_volume),
-                    description = stringResource(R.string.relative_conversational_awareness_volume_description),
-                    checkedState = relativeConversationalAwarenessVolumeEnabled,
-                    onCheckedChange = { updateRelativeConversationalAwarenessVolume(it) },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.relative_conversational_awareness_volume),
+//                    description = stringResource(R.string.relative_conversational_awareness_volume_description),
+//                    checkedState = relativeConversationalAwarenessVolumeEnabled,
+//                    onCheckedChange = { updateRelativeConversationalAwarenessVolume(it) },
+//                    independent = false
+//                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            val conversationalAwarenessVolume = remember { mutableFloatStateOf(sharedPreferences.getInt("conversational_awareness_volume", 43).toFloat()) }
-            LaunchedEffect(conversationalAwarenessVolume.floatValue) {
-                sharedPreferences.edit { putInt("conversational_awareness_volume", conversationalAwarenessVolume.floatValue.roundToInt()) }
+            var conversationalAwarenessVolume by remember { mutableFloatStateOf(sharedPreferences.getInt("conversational_awareness_volume", 43).toFloat()) }
+            LaunchedEffect(conversationalAwarenessVolume) {
+                sharedPreferences.edit { putInt("conversational_awareness_volume", conversationalAwarenessVolume.roundToInt()) }
             }
 
             StyledSlider(
                 label = stringResource(R.string.conversational_awareness_volume),
-                mutableFloatState = conversationalAwarenessVolume,
+                value = conversationalAwarenessVolume,
                 valueRange = 10f..85f,
                 startLabel = "10%",
                 endLabel = "85%",
-                onValueChange = { newValue -> conversationalAwarenessVolume.floatValue = newValue },
+                onValueChange = { newValue -> conversationalAwarenessVolume = newValue },
                 independent = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             NavigationButton(
-                to = "",
-                title = stringResource(R.string.camera_control),
                 name = stringResource(R.string.set_custom_camera_package),
-                navController = navController,
-                onClick = { showCameraDialog.value = true },
+                title = stringResource(R.string.camera_control),
+                description = stringResource(R.string.camera_control_app_description),
+                onClick = onShowCameraPackageDialog,
                 independent = true,
-                description = stringResource(R.string.camera_control_app_description)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            StyledToggle(
-                title = stringResource(R.string.quick_settings_tile),
-                label = stringResource(R.string.open_dialog_for_controlling),
-                description = stringResource(R.string.open_dialog_for_controlling_description),
-                checkedState = openDialogForControlling,
-                onCheckedChange = {
-                    openDialogForControlling.value = it
-                    sharedPreferences.edit { putString("qs_click_behavior", if (it) "dialog" else "activity") }
-                },
-            )
+//            StyledToggle(
+//                title = stringResource(R.string.quick_settings_tile),
+//                label = stringResource(R.string.open_dialog_for_controlling),
+//                description = stringResource(R.string.open_dialog_for_controlling_description),
+//                checkedState = openDialogForControlling,
+//                onCheckedChange = {
+//                    openDialogForControlling.value = it
+//                    sharedPreferences.edit { putString("qs_click_behavior", if (it) "dialog" else "activity") }
+//                },
+//            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            StyledToggle(
-                title = stringResource(R.string.ear_detection),
-                label = stringResource(R.string.disconnect_when_not_wearing),
-                description = stringResource(R.string.disconnect_when_not_wearing_description),
-                checkedState = disconnectWhenNotWearing,
-                sharedPreferenceKey = "disconnect_when_not_wearing",
-                sharedPreferences = sharedPreferences,
-            )
+//            StyledToggle(
+//                title = stringResource(R.string.ear_detection),
+//                label = stringResource(R.string.disconnect_when_not_wearing),
+//                description = stringResource(R.string.disconnect_when_not_wearing_description),
+//                checkedState = disconnectWhenNotWearing,
+//                sharedPreferenceKey = "disconnect_when_not_wearing",
+//                sharedPreferences = sharedPreferences,
+//            )
 
             Text(
                 text = stringResource(R.string.takeover_airpods_state),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor.copy(alpha = 0.6f),
                 modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 24.dp)
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
 
             Column(
                 modifier = Modifier
@@ -348,16 +349,16 @@ fun AppSettingsScreen(navController: NavController) {
                     )
                     .padding(vertical = 4.dp)
             ) {
-                StyledToggle(
-                    label = stringResource(R.string.takeover_disconnected),
-                    description = stringResource(R.string.takeover_disconnected_desc),
-                    checkedState = takeoverWhenDisconnected,
-                    onCheckedChange = {
-                        takeoverWhenDisconnected.value = it
-                        sharedPreferences.edit { putBoolean("takeover_when_disconnected", it)}
-                    },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.takeover_disconnected),
+//                    description = stringResource(R.string.takeover_disconnected_desc),
+//                    checkedState = takeoverWhenDisconnected,
+//                    onCheckedChange = {
+//                        takeoverWhenDisconnected.value = it
+//                        sharedPreferences.edit { putBoolean("takeover_when_disconnected", it)}
+//                    },
+//                    independent = false
+//                )
                 HorizontalDivider(
                     thickness = 1.dp,
                     color = Color(0x40888888),
@@ -365,16 +366,16 @@ fun AppSettingsScreen(navController: NavController) {
                         .padding(horizontal = 12.dp)
                 )
 
-                StyledToggle(
-                    label = stringResource(R.string.takeover_idle),
-                    description = stringResource(R.string.takeover_idle_desc),
-                    checkedState = takeoverWhenIdle,
-                    onCheckedChange = {
-                        takeoverWhenIdle.value = it
-                        sharedPreferences.edit { putBoolean("takeover_when_idle", it)}
-                    },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.takeover_idle),
+//                    description = stringResource(R.string.takeover_idle_desc),
+//                    checkedState = takeoverWhenIdle,
+//                    onCheckedChange = {
+//                        takeoverWhenIdle.value = it
+//                        sharedPreferences.edit { putBoolean("takeover_when_idle", it)}
+//                    },
+//                    independent = false
+//                )
                 HorizontalDivider(
                     thickness = 1.dp,
                     color = Color(0x40888888),
@@ -382,16 +383,16 @@ fun AppSettingsScreen(navController: NavController) {
                         .padding(horizontal = 12.dp)
                 )
 
-                StyledToggle(
-                    label = stringResource(R.string.takeover_music),
-                    description = stringResource(R.string.takeover_music_desc),
-                    checkedState = takeoverWhenMusic,
-                    onCheckedChange = {
-                        takeoverWhenMusic.value = it
-                        sharedPreferences.edit { putBoolean("takeover_when_music", it)}
-                    },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.takeover_music),
+//                    description = stringResource(R.string.takeover_music_desc),
+//                    checkedState = takeoverWhenMusic,
+//                    onCheckedChange = {
+//                        takeoverWhenMusic.value = it
+//                        sharedPreferences.edit { putBoolean("takeover_when_music", it)}
+//                    },
+//                    independent = false
+//                )
                 HorizontalDivider(
                     thickness = 1.dp,
                     color = Color(0x40888888),
@@ -399,31 +400,28 @@ fun AppSettingsScreen(navController: NavController) {
                         .padding(horizontal = 12.dp)
                 )
 
-                StyledToggle(
-                    label = stringResource(R.string.takeover_call),
-                    description = stringResource(R.string.takeover_call_desc),
-                    checkedState = takeoverWhenCall,
-                    onCheckedChange = {
-                        takeoverWhenCall.value = it
-                        sharedPreferences.edit { putBoolean("takeover_when_call", it)}
-                    },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.takeover_call),
+//                    description = stringResource(R.string.takeover_call_desc),
+//                    checkedState = takeoverWhenCall,
+//                    onCheckedChange = {
+//                        takeoverWhenCall.value = it
+//                        sharedPreferences.edit { putBoolean("takeover_when_call", it)}
+//                    },
+//                    independent = false
+//                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             Text(
                 text = stringResource(R.string.takeover_phone_state),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor.copy(alpha = 0.6f),
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -433,16 +431,16 @@ fun AppSettingsScreen(navController: NavController) {
                     )
                     .padding(vertical = 4.dp)
             ){
-                StyledToggle(
-                    label = stringResource(R.string.takeover_ringing_call),
-                    description = stringResource(R.string.takeover_ringing_call_desc),
-                    checkedState = takeoverWhenRingingCall,
-                    onCheckedChange = {
-                        takeoverWhenRingingCall.value = it
-                        sharedPreferences.edit { putBoolean("takeover_when_ringing_call", it)}
-                    },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.takeover_ringing_call),
+//                    description = stringResource(R.string.takeover_ringing_call_desc),
+//                    checkedState = takeoverWhenRingingCall,
+//                    onCheckedChange = {
+//                        takeoverWhenRingingCall.value = it
+//                        sharedPreferences.edit { putBoolean("takeover_when_ringing_call", it)}
+//                    },
+//                    independent = false
+//                )
                 HorizontalDivider(
                     thickness = 1.dp,
                     color = Color(0x40888888),
@@ -450,30 +448,27 @@ fun AppSettingsScreen(navController: NavController) {
                         .padding(horizontal = 12.dp)
                 )
 
-                StyledToggle(
-                    label = stringResource(R.string.takeover_media_start),
-                    description = stringResource(R.string.takeover_media_start_desc),
-                    checkedState = takeoverWhenMediaStart,
-                    onCheckedChange = {
-                        takeoverWhenMediaStart.value = it
-                        sharedPreferences.edit { putBoolean("takeover_when_media_start", it)}
-                    },
-                    independent = false
-                )
+//                StyledToggle(
+//                    label = stringResource(R.string.takeover_media_start),
+//                    description = stringResource(R.string.takeover_media_start_desc),
+//                    checkedState = takeoverWhenMediaStart,
+//                    onCheckedChange = {
+//                        takeoverWhenMediaStart.value = it
+//                        sharedPreferences.edit { putBoolean("takeover_when_media_start", it)}
+//                    },
+//                    independent = false
+//                )
             }
 
             Text(
                 text = stringResource(R.string.advanced_options),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = textColor.copy(alpha = 0.6f),
                 modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 24.dp)
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(Modifier.height(2.dp))
 
             Column(
                 modifier = Modifier
@@ -505,7 +500,7 @@ fun AppSettingsScreen(navController: NavController) {
                             fontSize = 16.sp,
                             color = textColor
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             text = stringResource(R.string.set_identity_resolving_key_description),
                             fontSize = 14.sp,
@@ -541,7 +536,7 @@ fun AppSettingsScreen(navController: NavController) {
                             fontSize = 16.sp,
                             color = textColor
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             text = stringResource(R.string.set_encryption_key_description),
                             fontSize = 14.sp,
@@ -552,27 +547,26 @@ fun AppSettingsScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            StyledToggle(
-                label = stringResource(R.string.use_alternate_head_tracking_packets),
-                description = stringResource(R.string.use_alternate_head_tracking_packets_description),
-                checkedState = useAlternateHeadTrackingPackets,
-                onCheckedChange = {
-                    useAlternateHeadTrackingPackets.value = it
-                    sharedPreferences.edit { putBoolean("use_alternate_head_tracking_packets", it)}
-                },
-                independent = true
-            )
+//            StyledToggle(
+//                label = stringResource(R.string.use_alternate_head_tracking_packets),
+//                description = stringResource(R.string.use_alternate_head_tracking_packets_description),
+//                checkedState = useAlternateHeadTrackingPackets,
+//                onCheckedChange = {
+//                    useAlternateHeadTrackingPackets.value = it
+//                    sharedPreferences.edit { putBoolean("use_alternate_head_tracking_packets", it)}
+//                },
+//                independent = true
+//            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             NavigationButton(
-                to = "troubleshooting",
                 name = stringResource(R.string.troubleshooting),
-                navController = navController,
-                independent = true,
-                description = stringResource(R.string.troubleshooting_description)
+                description = stringResource(R.string.troubleshooting_description),
+                onClick = onNavigateToTroubleshooting,
+                independent = true
             )
 
             LaunchedEffect(Unit) {
@@ -580,31 +574,31 @@ fun AppSettingsScreen(navController: NavController) {
             }
             val restartBluetoothText = stringResource(R.string.found_offset_restart_bluetooth)
 
-            StyledToggle(
-                label = stringResource(R.string.act_as_an_apple_device),
-                description = stringResource(R.string.act_as_an_apple_device_description),
-                checkedState = actAsAppleDevice,
-                onCheckedChange = {
-                    actAsAppleDevice.value = it
-                    isProcessingSdp.value = true
-                    coroutineScope.launch {
-                        if (it) {
-                            val radareOffsetFinder = RadareOffsetFinder(context)
-                            val success = radareOffsetFinder.findSdpOffset()
-                            if (success) {
-                                Toast.makeText(context, restartBluetoothText, Toast.LENGTH_LONG).show()
-                            }
-                        } else {
-                            RadareOffsetFinder.clearSdpOffset()
-                        }
-                        isProcessingSdp.value = false
-                    }
-                },
-                independent = true,
-                enabled = !isProcessingSdp.value
-            )
+//            StyledToggle(
+//                label = stringResource(R.string.act_as_an_apple_device),
+//                description = stringResource(R.string.act_as_an_apple_device_description),
+//                checkedState = actAsAppleDevice,
+//                onCheckedChange = {
+//                    actAsAppleDevice.value = it
+//                    isProcessingSdp.value = true
+//                    coroutineScope.launch {
+//                        if (it) {
+//                            val radareOffsetFinder = RadareOffsetFinder(context)
+//                            val success = radareOffsetFinder.findSdpOffset()
+//                            if (success) {
+//                                Toast.makeText(context, restartBluetoothText, Toast.LENGTH_LONG).show()
+//                            }
+//                        } else {
+//                            RadareOffsetFinder.clearSdpOffset()
+//                        }
+//                        isProcessingSdp.value = false
+//                    }
+//                },
+//                independent = true,
+//                enabled = !isProcessingSdp.value
+//            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             Button(
                 onClick = { showResetDialog.value = true },
@@ -626,29 +620,25 @@ fun AppSettingsScreen(navController: NavController) {
                         tint = MaterialTheme.colorScheme.onErrorContainer,
                         modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.reset_hook_offset),
                         color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium,
-                            fontFamily = FontFamily(Font(R.font.sf_pro))
-                        )
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
             NavigationButton(
-                to = "open_source_licenses",
                 name = stringResource(R.string.open_source_licenses),
-                navController = navController,
+                onClick = onNavigateToOpenSourceLicenses,
                 independent = true
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(Modifier.height(32.dp))
 
             if (showResetDialog.value) {
                 AlertDialog(
@@ -656,14 +646,12 @@ fun AppSettingsScreen(navController: NavController) {
                     title = {
                         Text(
                             "Reset Hook Offset",
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
                             fontWeight = FontWeight.Medium
                         )
                     },
                     text = {
                         Text(
                             stringResource(R.string.reset_hook_offset_description),
-                            fontFamily = FontFamily(Font(R.font.sf_pro))
                         )
                     },
                     confirmButton = {
@@ -678,9 +666,7 @@ fun AppSettingsScreen(navController: NavController) {
                                         Toast.LENGTH_LONG
                                     ).show()
 
-                                    navController.navigate("onboarding") {
-                                        popUpTo("settings") { inclusive = true }
-                                    }
+                                    onNavigateToOnboarding()
                                 } else {
                                     Toast.makeText(
                                         context,
@@ -696,7 +682,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 stringResource(R.string.reset),
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -707,7 +692,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Cancel",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -721,7 +705,6 @@ fun AppSettingsScreen(navController: NavController) {
                     title = {
                         Text(
                             stringResource(R.string.set_identity_resolving_key),
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
                             fontWeight = FontWeight.Medium
                         )
                     },
@@ -729,7 +712,6 @@ fun AppSettingsScreen(navController: NavController) {
                         Column {
                             Text(
                                 stringResource(R.string.enter_irk_hex),
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
 
@@ -787,7 +769,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Save",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -798,7 +779,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Cancel",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -812,7 +792,6 @@ fun AppSettingsScreen(navController: NavController) {
                     title = {
                         Text(
                             stringResource(R.string.set_encryption_key),
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
                             fontWeight = FontWeight.Medium
                         )
                     },
@@ -820,7 +799,6 @@ fun AppSettingsScreen(navController: NavController) {
                         Column {
                             Text(
                                 stringResource(R.string.enter_enc_key_hex),
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
 
@@ -878,7 +856,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Save",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -889,7 +866,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Cancel",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -903,7 +879,6 @@ fun AppSettingsScreen(navController: NavController) {
                     title = {
                         Text(
                             stringResource(R.string.set_custom_camera_package),
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
                             fontWeight = FontWeight.Medium
                         )
                     },
@@ -911,7 +886,6 @@ fun AppSettingsScreen(navController: NavController) {
                         Column {
                             Text(
                                 stringResource(R.string.enter_custom_camera_package),
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
 
@@ -958,7 +932,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Save",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -969,7 +942,6 @@ fun AppSettingsScreen(navController: NavController) {
                         ) {
                             Text(
                                 "Cancel",
-                                fontFamily = FontFamily(Font(R.font.sf_pro)),
                                 fontWeight = FontWeight.Medium
                             )
                         }

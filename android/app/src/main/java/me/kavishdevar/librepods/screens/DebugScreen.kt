@@ -20,19 +20,14 @@
 
 package me.kavishdevar.librepods.screens
 
-import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Build
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,7 +43,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,16 +59,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
@@ -82,11 +77,11 @@ import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.constants.BatteryStatus
 import me.kavishdevar.librepods.constants.isHeadTrackingData
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 data class PacketInfo(
@@ -287,11 +282,8 @@ fun parseOutgoingPacket(bytes: ByteArray, rawData: String): PacketInfo {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.Q)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "UnspecifiedRegisterReceiverFlag")
 @Composable
-fun DebugScreen(navController: NavController) {
+fun DebugScreen() {
     val context = LocalContext.current
     val listState = rememberLazyListState()
     val focusManager = LocalFocusManager.current
@@ -326,21 +318,27 @@ fun DebugScreen(navController: NavController) {
     val isDarkTheme = isSystemInDarkTheme()
     val backdrop = rememberLayerBackdrop()
     StyledScaffold(
-        title = "Debug",
-        actionButtons = listOf(
-            {scaffoldBackdrop ->
-                StyledIconButton(
-                    onClick = {
-                        airPodsService?.clearLogs()
-                        expandedItems.value = emptySet()
-                    },
-                    icon = "􀈑",
-                    darkMode = isDarkTheme,
-                    backdrop = scaffoldBackdrop
-                )
-            }
-        ),
-    ) { spacerHeight, hazeState ->
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text("Debug")
+                }
+            )
+        },
+//        actionButtons = listOf(
+//            {scaffoldBackdrop ->
+//                StyledIconButton(
+//                    onClick = {
+//                        airPodsService?.clearLogs()
+//                        expandedItems.value = emptySet()
+//                    },
+//                    icon = "􀈑",
+//                    darkMode = isDarkTheme,
+//                    backdrop = scaffoldBackdrop
+//                )
+//            }
+//        ),
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -349,7 +347,7 @@ fun DebugScreen(navController: NavController) {
                 .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -387,13 +385,10 @@ fun DebugScreen(navController: NavController) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = if (isSent) "􀆉" else "􀆊",
-                                    style = TextStyle(
-                                        fontSize = 16.sp,
-                                        fontFamily = FontFamily(Font(R.font.sf_pro)),
-                                        color = if (isSent) Color(0xFF4CD964) else Color(0xFFFF3B30)
-                                    ),
+                                    fontSize = 16.sp,
+                                    color = if (isSent) Color(0xFF4CD964) else Color(0xFFFF3B30)
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(Modifier.width(4.dp))
                                 Column {
                                     Text(
                                         text = if (packetInfo.isUnknown) {
@@ -403,46 +398,38 @@ fun DebugScreen(navController: NavController) {
                                         } else {
                                             "${packetInfo.type}: ${packetInfo.description}"
                                         },
-                                        style = TextStyle(
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            fontFamily = FontFamily(Font(R.font.hack))
-                                        )
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = FontFamily(Font(R.font.sf_mono_regular))
                                     )
                                     if (isExpanded) {
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(Modifier.height(4.dp))
 
                                         if (packetInfo.parsedData.isNotEmpty()) {
                                             packetInfo.parsedData.forEach { (key, value) ->
                                                 Row {
                                                     Text(
                                                         text = "$key: ",
-                                                        style = TextStyle(
-                                                            fontSize = 12.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontFamily = FontFamily(Font(R.font.hack))
-                                                        ),
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontFamily = FontFamily(Font(R.font.sf_mono_regular)),
                                                         color = Color.Gray
                                                     )
                                                     Text(
                                                         text = value,
-                                                        style = TextStyle(
-                                                            fontSize = 12.sp,
-                                                            fontFamily = FontFamily(Font(R.font.hack))
-                                                        ),
+                                                        fontSize = 12.sp,
+                                                        fontFamily = FontFamily(Font(R.font.sf_mono_regular)),
                                                         color = Color.Gray
                                                     )
                                                 }
                                             }
-                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Spacer(Modifier.height(4.dp))
                                         }
 
                                         Text(
                                             text = "Raw: ${packetInfo.rawData}",
-                                            style = TextStyle(
-                                                fontSize = 12.sp,
-                                                fontFamily = FontFamily(Font(R.font.hack))
-                                            ),
+                                            fontSize = 12.sp,
+                                            fontFamily = FontFamily(Font(R.font.sf_mono_regular)),
                                             color = Color.Gray
                                         )
                                     }
@@ -452,7 +439,7 @@ fun DebugScreen(navController: NavController) {
                     }
                 }
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
             val airPodsService = ServiceManager.getService()?.let { mutableStateOf(it) }
             HorizontalDivider()
             Row(

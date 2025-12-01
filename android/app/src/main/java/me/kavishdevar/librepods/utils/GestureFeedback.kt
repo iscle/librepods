@@ -25,9 +25,9 @@ import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.Build
 import android.os.SystemClock
-import android.util.Log
 import androidx.annotation.RequiresApi
 import me.kavishdevar.librepods.R
+import timber.log.Timber
 import java.util.concurrent.atomic.AtomicBoolean
 
 class GestureFeedback(context: Context) {
@@ -77,7 +77,7 @@ class GestureFeedback(context: Context) {
         confirmNoId = soundPool.load(context, R.raw.confirm_no, 1)
 
         soundPool.setOnLoadCompleteListener { _, _, _ ->
-            Log.d(TAG, "Sounds loaded")
+            Timber.d("Sounds loaded")
             soundsLoaded.set(true)
 
             soundPool.play(soundId, 0.0f, 0.0f, 1, 0, 1.0f)
@@ -87,7 +87,7 @@ class GestureFeedback(context: Context) {
     @RequiresApi(Build.VERSION_CODES.R)
     fun playDirectional(isVertical: Boolean, value: Double) {
         if (!soundsLoaded.get()) {
-            Log.d(TAG, "Sounds not yet loaded, skipping playback")
+            Timber.d("Sounds not yet loaded, skipping playback")
             return
         }
 
@@ -97,17 +97,17 @@ class GestureFeedback(context: Context) {
             val isUp = value > 0
 
             if (now - lastVerticalTime < MIN_TIME_BETWEEN_SOUNDS) {
-                Log.d(TAG, "Skipping vertical sound due to general vertical debounce")
+                Timber.d("Skipping vertical sound due to general vertical debounce")
                 return
             }
 
             if (isUp && now - lastUpTime < MIN_TIME_BETWEEN_DIRECTION) {
-                Log.d(TAG, "Skipping UP sound due to direction debounce")
+                Timber.d("Skipping UP sound due to direction debounce")
                 return
             }
 
             if (!isUp && now - lastDownTime < MIN_TIME_BETWEEN_DIRECTION) {
-                Log.d(TAG, "Skipping DOWN sound due to direction debounce")
+                Timber.d("Skipping DOWN sound due to direction debounce")
                 return
             }
 
@@ -118,7 +118,7 @@ class GestureFeedback(context: Context) {
             val (leftVol, rightVol) = VERTICAL_VOLUME
 
             currentVerticalStreamId = soundPool.play(soundId, leftVol, rightVol, 1, 0, 1.0f)
-            Log.d(TAG, "Playing VERTICAL sound: ${if (isUp) "UP" else "DOWN"} - streamID=$currentVerticalStreamId")
+            Timber.d("Playing VERTICAL sound: ${if (isUp) "UP" else "DOWN"} - streamID=$currentVerticalStreamId")
 
             lastVerticalTime = now
             if (isUp) {
@@ -128,19 +128,19 @@ class GestureFeedback(context: Context) {
             }
         } else {
             if (now - lastHorizontalTime < MIN_TIME_BETWEEN_SOUNDS) {
-                Log.d(TAG, "Skipping horizontal sound due to general horizontal debounce")
+                Timber.d("Skipping horizontal sound due to general horizontal debounce")
                 return
             }
 
             val isRight = value > 0
 
             if (isRight && now - lastRightTime < MIN_TIME_BETWEEN_DIRECTION) {
-                Log.d(TAG, "Skipping RIGHT sound due to direction debounce")
+                Timber.d("Skipping RIGHT sound due to direction debounce")
                 return
             }
 
             if (!isRight && now - lastLeftTime < MIN_TIME_BETWEEN_DIRECTION) {
-                Log.d(TAG, "Skipping LEFT sound due to direction debounce")
+                Timber.d("Skipping LEFT sound due to direction debounce")
                 return
             }
 
@@ -151,7 +151,7 @@ class GestureFeedback(context: Context) {
             val (leftVol, rightVol) = if (isRight) RIGHT_VOLUME else LEFT_VOLUME
 
             currentHorizontalStreamId = soundPool.play(soundId, leftVol, rightVol, 1, 0, 1.0f)
-            Log.d(TAG, "Playing HORIZONTAL sound: ${if (isRight) "RIGHT" else "LEFT"} - streamID=$currentHorizontalStreamId")
+            Timber.d("Playing HORIZONTAL sound: ${if (isRight) "RIGHT" else "LEFT"} - streamID=$currentHorizontalStreamId")
 
             lastHorizontalTime = now
             if (isRight) {
@@ -173,7 +173,7 @@ class GestureFeedback(context: Context) {
         val soundId = if (isYes) confirmYesId else confirmNoId
         if (soundId != 0 && soundsLoaded.get()) {
             val streamId = soundPool.play(soundId, 1.0f, 1.0f, 1, 0, 1.0f)
-            Log.d(TAG, "Playing ${if (isYes) "YES" else "NO"} confirmation - streamID=$streamId")
+            Timber.d("Playing ${if (isYes) "YES" else "NO"} confirmation - streamID=$streamId")
         }
     }
 }

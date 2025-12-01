@@ -23,9 +23,11 @@ package me.kavishdevar.librepods.widgets
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import dagger.hilt.android.AndroidEntryPoint
 import me.kavishdevar.librepods.services.ServiceManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+@AndroidEntryPoint
 class BatteryWidget : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,

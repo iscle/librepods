@@ -21,7 +21,6 @@
 package me.kavishdevar.librepods.utils
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.kavishdevar.librepods.services.AirPodsService
 import me.kavishdevar.librepods.services.ServiceManager
+import timber.log.Timber
 import java.util.Collections
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -100,11 +100,11 @@ class GestureDetector(
 fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> Unit) {
         if (isRunning) return
 
-        Log.d(TAG, "Starting gesture detection...")
+        Timber.d("Starting gesture detection...")
         isRunning = true
         gestureDetectedCallback = onGestureDetected
 
-        Log.d(TAG, "started: ${airPodsService.startHeadTracking()}")
+        Timber.d("started: ${airPodsService.startHeadTracking()}")
 
         clearData()
 
@@ -131,7 +131,7 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
     fun stopDetection(doNotStop: Boolean = false) {
         if (!isRunning) return
 
-        Log.d(TAG, "Stopping gesture detection")
+        Timber.d("Stopping gesture detection")
         isRunning = false
 
         if (!doNotStop) airPodsService.stopHeadTracking()
@@ -146,7 +146,7 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
         if (!isRunning) return
 
         if (abs(horizontal) > MAX_VALID_ORIENTATION_VALUE || abs(vertical) > MAX_VALID_ORIENTATION_VALUE) {
-            Log.d(TAG, "Ignoring likely calibration data: h=$horizontal, v=$vertical")
+            Timber.d("Ignoring likely calibration data: h=$horizontal, v=$vertical")
             return
         }
 
@@ -162,7 +162,7 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
             }
             significantMotion = true
             lastSignificantMotionTime = System.currentTimeMillis()
-            Log.d(TAG, "Significant HORIZONTAL movement: $horizontalDelta")
+            Timber.d("Significant HORIZONTAL movement: $horizontalDelta")
         }
         else if (significantVertical) {
             CoroutineScope(Dispatchers.Main).launch {
@@ -170,7 +170,7 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
             }
             significantMotion = true
             lastSignificantMotionTime = System.currentTimeMillis()
-            Log.d(TAG, "Significant VERTICAL movement: $verticalDelta")
+            Timber.d("Significant VERTICAL movement: $verticalDelta")
         }
         else if (significantMotion &&
                  (System.currentTimeMillis() - lastSignificantMotionTime) > 300) {
@@ -354,7 +354,7 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
         if (movementSpeedIntervals.isEmpty()) return MIN_REQUIRED_EXTREMES
 
         val avgInterval = movementSpeedIntervals.average()
-        Log.d(TAG, "Average movement interval: $avgInterval ms")
+        Timber.d("Average movement interval: $avgInterval ms")
 
         return if (avgInterval < FAST_MOVEMENT_THRESHOLD) {
             MAX_REQUIRED_EXTREMES
@@ -365,17 +365,17 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
 
     private fun detectGestures(): Boolean? {
         val requiredExtremes = getRequiredExtremes()
-        Log.d(TAG, "Current required extremes: $requiredExtremes")
+        Timber.d("Current required extremes: $requiredExtremes")
 
         if (verticalPeaks.size + verticalTroughs.size >= requiredExtremes) {
             val allExtremes = (verticalPeaks + verticalTroughs).sortedBy { it.first }
 
             val confidence = calculateConfidenceScore(allExtremes, isVertical = true)
 
-            Log.d(TAG, "Vertical motion confidence: $confidence (need $minConfidenceThreshold)")
+            Timber.d("Vertical motion confidence: $confidence (need $minConfidenceThreshold)")
 
             if (confidence >= minConfidenceThreshold) {
-                Log.d(TAG, "\"Yes\" Gesture Detected (confidence: $confidence, extremes: ${allExtremes.size}/$requiredExtremes)")
+                Timber.d("\"Yes\" Gesture Detected (confidence: $confidence, extremes: ${allExtremes.size}/$requiredExtremes)")
                 return true
             }
         }
@@ -385,10 +385,10 @@ fun startDetection(doNotStop: Boolean = false, onGestureDetected: (Boolean) -> U
 
             val confidence = calculateConfidenceScore(allExtremes, isVertical = false)
 
-            Log.d(TAG, "Horizontal motion confidence: $confidence (need $minConfidenceThreshold)")
+            Timber.d("Horizontal motion confidence: $confidence (need $minConfidenceThreshold)")
 
             if (confidence >= minConfidenceThreshold) {
-                Log.d(TAG, "\"No\" Gesture Detected (confidence: $confidence, extremes: ${allExtremes.size}/$requiredExtremes)")
+                Timber.d("\"No\" Gesture Detected (confidence: $confidence, extremes: ${allExtremes.size}/$requiredExtremes)")
                 return false
             }
         }

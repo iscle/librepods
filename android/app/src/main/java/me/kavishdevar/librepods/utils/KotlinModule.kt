@@ -8,7 +8,6 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.ParcelUuid
-import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -26,36 +25,37 @@ import io.github.libxposed.api.XposedModuleInterface
 import io.github.libxposed.api.XposedModuleInterface.ModuleLoadedParam
 import io.github.libxposed.api.annotations.AfterInvocation
 import io.github.libxposed.api.annotations.XposedHooker
+import timber.log.Timber
 
 private const val TAG = "AirPodsHook"
 private lateinit var module: KotlinModule
 @SuppressLint("DiscouragedApi", "PrivateApi")
 class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModule(base, param) {
     init {
-        Log.i(TAG, "AirPodsHook module initialized at :: ${param.processName}")
+        Timber.i("AirPodsHook module initialized at :: ${param.processName}")
         module = this
     }
 
     override fun onPackageLoaded(param: XposedModuleInterface.PackageLoadedParam) {
         super.onPackageLoaded(param)
-        Log.i(TAG, "onPackageLoaded :: ${param.packageName}")
+        Timber.i("onPackageLoaded :: ${param.packageName}")
 
         if (param.packageName == "com.google.android.bluetooth" || param.packageName == "com.android.bluetooth") {
-            Log.i(TAG, "Bluetooth app detected, hooking l2c_fcr_chk_chan_modes")
+            Timber.i("Bluetooth app detected, hooking l2c_fcr_chk_chan_modes")
 
             try {
                 if (param.isFirstPackage) {
-                    Log.i(TAG, "Loading native library for Bluetooth hook")
+                    Timber.i("Loading native library for Bluetooth hook")
                     System.loadLibrary("l2c_fcr_hook")
-                    Log.i(TAG, "Native library loaded successfully")
+                    Timber.i("Native library loaded successfully")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load native library: ${e.message}", e)
+                Timber.e("Failed to load native library: ${e.message}", e)
             }
         }
 
         if (param.packageName == "com.google.android.settings") {
-            Log.i(TAG, "Settings app detected, hooking Bluetooth icon handling")
+            Timber.i("Settings app detected, hooking Bluetooth icon handling")
             try {
                 val headerControllerClass = param.classLoader.loadClass(
                     "com.google.android.settings.bluetooth.AdvancedBluetoothDetailsHeaderController")
@@ -66,7 +66,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                     String::class.java)
 
                 hook(updateIconMethod, BluetoothIconHooker::class.java)
-                Log.i(TAG, "Successfully hooked updateIcon method in Bluetooth settings")
+                Timber.i("Successfully hooked updateIcon method in Bluetooth settings")
 
                 try {
                     val displayPreferenceMethod = headerControllerClass.getDeclaredMethod(
@@ -74,17 +74,17 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                         param.classLoader.loadClass("androidx.preference.PreferenceScreen"))
 
                     hook(displayPreferenceMethod, BluetoothSettingsAirPodsHooker::class.java)
-                    Log.i(TAG, "Successfully hooked displayPreference for AirPods button injection")
+                    Timber.i("Successfully hooked displayPreference for AirPods button injection")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to hook displayPreference: ${e.message}", e)
+                    Timber.e("Failed to hook displayPreference: ${e.message}", e)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to hook Bluetooth icon handler: ${e.message}", e)
+                Timber.e("Failed to hook Bluetooth icon handler: ${e.message}", e)
             }
         }
 
         if (param.packageName == "com.android.settings") {
-            Log.i(TAG, "Settings app detected, hooking Bluetooth icon handling")
+            Timber.i("Settings app detected, hooking Bluetooth icon handling")
             try {
                 val headerControllerClass = param.classLoader.loadClass(
                     "com.android.settings.bluetooth.AdvancedBluetoothDetailsHeaderController")
@@ -95,7 +95,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                     String::class.java)
 
                 hook(updateIconMethod, BluetoothIconHooker::class.java)
-                Log.i(TAG, "Successfully hooked updateIcon method in Bluetooth settings")
+                Timber.i("Successfully hooked updateIcon method in Bluetooth settings")
 
                 try {
                     val displayPreferenceMethod = headerControllerClass.getDeclaredMethod(
@@ -103,12 +103,12 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                         param.classLoader.loadClass("androidx.preference.PreferenceScreen"))
 
                     hook(displayPreferenceMethod, BluetoothSettingsAirPodsHooker::class.java)
-                    Log.i(TAG, "Successfully hooked displayPreference for AirPods button injection")
+                    Timber.i("Successfully hooked displayPreference for AirPods button injection")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to hook displayPreference: ${e.message}", e)
+                    Timber.e("Failed to hook displayPreference: ${e.message}", e)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to hook Bluetooth icon handler: ${e.message}", e)
+                Timber.e("Failed to hook Bluetooth icon handler: ${e.message}", e)
             }
         }
     }
@@ -151,13 +151,13 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                         val isAirPods = uuids.any { it.uuid.toString() == AIRPODS_UUID }
 
                         if (isAirPods) {
-                            Log.i(TAG, "AirPods device detected in settings, injecting controls")
+                            Timber.i("AirPods device detected in settings, injecting controls")
 
                             val findPreferenceMethod = preferenceScreen.javaClass.getMethod("findPreference", CharSequence::class.java)
                             val existingPref = findPreferenceMethod.invoke(preferenceScreen, LIBREPODS_PREFERENCE_KEY)
 
                             if (existingPref != null) {
-                                Log.i(TAG, "LIBREPODS button already exists, skipping")
+                                Timber.i("LIBREPODS button already exists, skipping")
                                 return
                             }
 
@@ -189,11 +189,11 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                             val addPreferenceMethod = preferenceScreen.javaClass.getMethod("addPreference", preferenceClass)
                             addPreferenceMethod.invoke(preferenceScreen, preference)
 
-                            Log.i(TAG, "Successfully added Open LIBREPODS button to AirPods settings")
+                            Timber.i("Successfully added Open LIBREPODS button to AirPods settings")
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error in BluetoothSettingsAirPodsHooker: ${e.message}", e)
+                    Timber.e("Error in BluetoothSettingsAirPodsHooker: ${e.message}", e)
                     e.printStackTrace()
                 }
             }
@@ -206,14 +206,14 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
             @JvmStatic
             @AfterInvocation
             fun afterUpdateIcon(callback: AfterHookCallback) {
-                Log.i(TAG, "BluetoothIconHooker called with args: ${callback.args.joinToString(", ")}")
+                Timber.i("BluetoothIconHooker called with args: ${callback.args.joinToString(", ")}")
                 try {
                     val imageView = callback.args[0] as ImageView
                     val iconUri = callback.args[1] as String
 
                     val uri = iconUri.toUri()
                     if (uri.toString().startsWith("android.resource://me.kavishdevar.librepods")) {
-                        Log.i(TAG, "Handling AirPods icon URI: $uri")
+                        Timber.i("Handling AirPods icon URI: $uri")
 
                         try {
                             val context = imageView.context
@@ -243,21 +243,21 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
 
                                             callback.result = null
 
-                                            Log.i(TAG, "Successfully loaded icon from resource: $resourceName")
+                                            Timber.i("Successfully loaded icon from resource: $resourceName")
                                         } else {
-                                            Log.e(TAG, "Resource not found: $resourceName")
+                                            Timber.e("Resource not found: $resourceName")
                                         }
                                     }
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "Error loading resource from URI $uri: ${e.message}")
+                                    Timber.e("Error loading resource from URI $uri: ${e.message}")
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error accessing context: ${e.message}")
+                            Timber.e("Error accessing context: ${e.message}")
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error in BluetoothIconHooker: ${e.message}")
+                    Timber.e("Error in BluetoothIconHooker: ${e.message}")
                     e.printStackTrace()
                 }
             }
@@ -294,11 +294,11 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                 dialogRowsViewField.isAccessible = true
                 val dialogRowsView = dialogRowsViewField.get(volumeDialog) as ViewGroup
 
-                Log.d(TAG, "Found dialogRowsView: ${dialogRowsView.javaClass.name}")
+                Timber.d("Found dialogRowsView: ${dialogRowsView.javaClass.name}")
 
                 val existingContainer = dialogView.findViewWithTag<View>("airpods_container")
                 if (existingContainer != null) {
-                    Log.d(TAG, "AirPods container already exists, ensuring visibility state")
+                    Timber.d("AirPods container already exists, ensuring visibility state")
                     val drawer = existingContainer.findViewWithTag<View>("airpods_drawer_container")
                     drawer?.visibility = View.GONE
                     drawer?.alpha = 0f
@@ -329,11 +329,11 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                             setImageDrawable(airPodsDrawable)
                         } else {
                             setImageResource(android.R.drawable.ic_media_play)
-                            Log.d(TAG, "Using fallback icon because airpods icon resource not found")
+                            Timber.d("Using fallback icon because airpods icon resource not found")
                         }
                     } catch (e: Exception) {
                         setImageResource(android.R.drawable.ic_media_play)
-                        Log.e(TAG, "Failed to load AirPods icon: ${e.message}")
+                        Timber.e("Failed to load AirPods icon: ${e.message}")
                     }
 
                     val shape = GradientDrawable()
@@ -355,7 +355,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                     layoutParams = params
 
                     setOnClickListener {
-                        Log.d(TAG, "AirPods button clicked, toggling drawer")
+                        Timber.d("AirPods button clicked, toggling drawer")
                         val container = findAirPodsContainer(this)
                         val drawerContainer = container?.findViewWithTag<View>("airpods_drawer_container")
                         if (drawerContainer != null && container != null) {
@@ -365,7 +365,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                                 showAirPodsDrawer(container, this, drawerContainer)
                             }
                         } else {
-                             Log.e(TAG, "Could not find container or drawer for toggle")
+                             Timber.e("Could not find container or drawer for toggle")
                         }
                     }
 
@@ -381,7 +381,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                 }
 
                 newAirPodsButton.setOnLongClickListener {
-                    Log.d(TAG, "AirPods button long-pressed, opening QuickSettingsDialogActivity")
+                    Timber.d("AirPods button long-pressed, opening QuickSettingsDialogActivity")
                     val intent = Intent().apply {
                         setClassName("me.kavishdevar.librepods", "me.kavishdevar.librepods.QuickSettingsDialogActivity")
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -391,7 +391,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                         val dismissMethod = volumeDialog.javaClass.getMethod("dismissH")
                         dismissMethod.invoke(volumeDialog)
                     } catch (e: Exception) {
-                        Log.w(TAG, "Could not dismiss volume dialog: ${e.message}")
+                        Timber.w("Could not dismiss volume dialog: ${e.message}")
                     }
                     true
                 }
@@ -443,7 +443,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                     field.isAccessible = true
                     field.get(volumeDialog) as? View
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to get settings view field: ${e.message}")
+                    Timber.e("Failed to get settings view field: ${e.message}")
                     null
                 }
 
@@ -453,21 +453,21 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
 
                     if (settingsIndex >= 0) {
                         settingsParent.addView(airPodsContainer, settingsIndex)
-                        Log.i(TAG, "Added AirPods controls before settings button")
+                        Timber.i("Added AirPods controls before settings button")
                     } else {
                         settingsParent.addView(airPodsContainer)
-                        Log.i(TAG, "Added AirPods controls to the end of settings parent")
+                        Timber.i("Added AirPods controls to the end of settings parent")
                     }
                 } else {
                     dialogView.addView(airPodsContainer)
-                    Log.i(TAG, "Fallback: Added AirPods controls to dialog view")
+                    Timber.i("Fallback: Added AirPods controls to dialog view")
                 }
 
                 updateMainButtonIcon(context, newAirPodsButton, currentANCMode)
 
-                Log.i(TAG, "Successfully added AirPods button and drawer to volume dialog")
+                Timber.i("Successfully added AirPods button and drawer to volume dialog")
             } catch (e: Exception) {
-                Log.e(TAG, "Error adding AirPods button to volume panel: ${e.message}")
+                Timber.e("Error adding AirPods button to volume panel: ${e.message}")
                 e.printStackTrace()
             }
         }
@@ -561,7 +561,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                         }
                     } catch (e: Exception) {
                         setImageResource(getIconResourceForMode(mode))
-                        Log.e(TAG, "Failed to load custom drawable for mode $mode: ${e.message}")
+                        Timber.e("Failed to load custom drawable for mode $mode: ${e.message}")
                     }
 
                     if (isSelected) {
@@ -580,7 +580,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                 }
 
                 setOnClickListener {
-                    Log.d(TAG, "ANC mode selected: $mode (was: $currentANCMode)")
+                    Timber.d("ANC mode selected: $mode (was: $currentANCMode)")
                     val container = findAirPodsContainer(this)
                     val drawerContainer = container?.findViewWithTag<View>("airpods_drawer_container")
 
@@ -618,7 +618,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                         putExtra(EXTRA_ANC_MODE, mode)
                     }
                     context.sendBroadcast(intent)
-                    Log.d(TAG, "Sent broadcast to change ANC mode to: ${getLabelForMode(currentANCMode)}")
+                    Timber.d("Sent broadcast to change ANC mode to: ${getLabelForMode(currentANCMode)}")
 
 
                     updateMainButtonIcon(context, mainButton, mode)
@@ -652,18 +652,18 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
                 }
                 current = parent as? View
             }
-            Log.w(TAG, "Could not find airpods_container ancestor")
+            Timber.w("Could not find airpods_container ancestor")
             return null
         }
 
         private fun showAirPodsDrawer(container: ViewGroup, mainButton: ImageButton, drawerContainer: View) {
-            Log.d(TAG, "Showing AirPods drawer")
+            Timber.d("Showing AirPods drawer")
             val selectedModeView = drawerContainer.findViewWithTag<View>("anc_mode_$currentANCMode")
             val selectedModeIcon = selectedModeView?.findViewWithTag<ImageView>("mode_icon_$currentANCMode")
             val buttonContainer = container.findViewWithTag<View>("airpods_button_container")
 
             if (selectedModeView == null || selectedModeIcon == null) {
-                Log.e(TAG, "Cannot find selected mode view or icon for show animation")
+                Timber.e("Cannot find selected mode view or icon for show animation")
 
                 drawerContainer.alpha = 0f
                 drawerContainer.visibility = View.VISIBLE
@@ -714,7 +714,7 @@ class KotlinModule(base: XposedInterface, param: ModuleLoadedParam): XposedModul
         }
 
         private fun hideAirPodsDrawer(container: ViewGroup, mainButton: ImageButton, drawerContainer: View) {
-            Log.d(TAG, "Hiding AirPods drawer")
+            Timber.d("Hiding AirPods drawer")
             val buttonContainer = container.findViewWithTag<View>("airpods_button_container")
 
             if (buttonContainer != null && buttonContainer.visibility != View.VISIBLE) {

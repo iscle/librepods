@@ -37,6 +37,7 @@
         android:maxSdkVersion="30" />
 
     <application
+        android:name=".LibrePodsApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
@@ -100,12 +101,12 @@
             android:taskAffinity=""
              />
 
-        <service
-            android:name=".services.AirPodsService"
-            android:enabled="true"
-            android:exported="true"
-            android:foregroundServiceType="connectedDevice"
-            android:permission="android.permission.BLUETOOTH_CONNECT" />
+<!--        <service-->
+<!--            android:name=".services.AirPodsService"-->
+<!--            android:enabled="true"-->
+<!--            android:exported="true"-->
+<!--            android:foregroundServiceType="connectedDevice"-->
+<!--            android:permission="android.permission.BLUETOOTH_CONNECT" />-->
         <service
             android:name=".services.AirPodsQSService"
             android:exported="true"

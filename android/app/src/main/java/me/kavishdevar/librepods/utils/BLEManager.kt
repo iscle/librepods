@@ -29,7 +29,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
+import timber.log.Timber
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
@@ -124,13 +124,13 @@ class BLEManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun startScanning() {
         try {
-            Log.d(TAG, "Starting BLE scanner")
+            Timber.d("Starting BLE scanner")
 
             val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
             val btAdapter = btManager.adapter
 
             if (btAdapter == null) {
-                Log.d(TAG, "No Bluetooth adapter available")
+                Timber.d("No Bluetooth adapter available")
                 return
             }
 
@@ -140,7 +140,7 @@ class BLEManager(private val context: Context) {
             }
 
             if (!btAdapter.isEnabled) {
-                Log.d(TAG, "Bluetooth is disabled")
+                Timber.d("Bluetooth is disabled")
                 return
             }
 
@@ -180,16 +180,16 @@ class BLEManager(private val context: Context) {
                 }
 
                 override fun onScanFailed(errorCode: Int) {
-                    Log.e(TAG, "BLE scan failed with error code: $errorCode")
+                    Timber.e("BLE scan failed with error code: $errorCode")
                 }
             }
 
             mBluetoothLeScanner?.startScan(listOf(scanFilter), scanSettings, mScanCallback)
-            Log.d(TAG, "BLE scanner started successfully")
+            Timber.d("BLE scanner started successfully")
 
             cleanupHandler.postDelayed(cleanupRunnable, CLEANUP_INTERVAL_MS)
         } catch (t: Throwable) {
-            Log.e(TAG, "Error starting BLE scanner", t)
+            Timber.e("Error starting BLE scanner", t)
         }
     }
 
@@ -197,14 +197,14 @@ class BLEManager(private val context: Context) {
     fun stopScanning() {
         try {
             if (mBluetoothLeScanner != null && mScanCallback != null) {
-                Log.d(TAG, "Stopping BLE scanner")
+                Timber.d("Stopping BLE scanner")
                 mBluetoothLeScanner?.stopScan(mScanCallback)
                 mScanCallback = null
             }
 
             cleanupHandler.removeCallbacks(cleanupRunnable)
         } catch (t: Throwable) {
-            Log.e(TAG, "Error stopping BLE scanner", t)
+            Timber.e("Error stopping BLE scanner", t)
         }
     }
 
@@ -215,7 +215,7 @@ class BLEManager(private val context: Context) {
             try {
                 Base64.decode(keyBase64)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to decode encryption key", e)
+                Timber.e("Failed to decode encryption key", e)
                 null
             }
         } else {
@@ -236,7 +236,7 @@ class BLEManager(private val context: Context) {
             cipher.init(Cipher.DECRYPT_MODE, secretKey)
             cipher.doFinal(block)
         } catch (e: Exception) {
-            Log.e(TAG, "Error decrypting data", e)
+            Timber.e("Error decrypting data", e)
             null
         }
     }
@@ -265,7 +265,7 @@ class BLEManager(private val context: Context) {
                     return
                 }
                 verifiedAddresses.add(address)
-                Log.d(TAG, "RPA verified and added to trusted list: $address")
+                Timber.d("RPA verified and added to trusted list: $address")
             }
 
             processedAddresses.add(address)
@@ -285,12 +285,12 @@ class BLEManager(private val context: Context) {
             airPodsStatusListener?.let { listener ->
                 if (previousStatus == null) {
                     listener.onBroadcastFromNewAddress(parsedStatus)
-                    Log.d(TAG, "New AirPods device detected: $address")
+                    Timber.d("New AirPods device detected: $address")
 
                     if (currentGlobalLidState == null || currentGlobalLidState != parsedStatus.lidOpen) {
                         currentGlobalLidState = parsedStatus.lidOpen
                         listener.onLidStateChanged(parsedStatus.lidOpen)
-                        Log.d(TAG, "Lid state ${if (parsedStatus.lidOpen) "opened" else "closed"} (detected from new device)")
+                        Timber.d("Lid state ${if (parsedStatus.lidOpen) "opened" else "closed"} (detected from new device)")
                     }
                 } else {
                     if (parsedStatus != previousStatus) {
@@ -303,7 +303,7 @@ class BLEManager(private val context: Context) {
 
                         if (previousGlobalState != parsedStatus.lidOpen) {
                             listener.onLidStateChanged(parsedStatus.lidOpen)
-                            Log.d(TAG, "Lid state changed from $previousGlobalState to ${parsedStatus.lidOpen}")
+                            Timber.d("Lid state changed from $previousGlobalState to ${parsedStatus.lidOpen}")
                         }
                     }
 
@@ -314,19 +314,19 @@ class BLEManager(private val context: Context) {
                             parsedStatus.isLeftInEar,
                             parsedStatus.isRightInEar
                         )
-                        Log.d(TAG, "Ear state changed - Left: ${parsedStatus.isLeftInEar}, Right: ${parsedStatus.isRightInEar}")
+                        Timber.d("Ear state changed - Left: ${parsedStatus.isLeftInEar}, Right: ${parsedStatus.isRightInEar}")
                     }
 
                     if (parsedStatus.leftBattery != previousStatus.leftBattery ||
                         parsedStatus.rightBattery != previousStatus.rightBattery ||
                         parsedStatus.caseBattery != previousStatus.caseBattery) {
                         listener.onBatteryChanged(parsedStatus)
-                        Log.d(TAG, "Battery changed - Left: ${parsedStatus.leftBattery}, Right: ${parsedStatus.rightBattery}, Case: ${parsedStatus.caseBattery}")
+                        Timber.d("Battery changed - Left: ${parsedStatus.leftBattery}, Right: ${parsedStatus.rightBattery}, Case: ${parsedStatus.caseBattery}")
                     }
                 }
             }
         } catch (t: Throwable) {
-            Log.e(TAG, "Error processing scan result", t)
+            Timber.e("Error processing scan result", t)
         }
     }
 
@@ -396,7 +396,7 @@ class BLEManager(private val context: Context) {
 
         for (device in staleDevices) {
             deviceStatusMap.remove(device.key)
-            Log.d(TAG, "Removed stale device from tracking: ${device.key}")
+            Timber.d("Removed stale device from tracking: ${device.key}")
         }
 
         if (hadDevices && deviceStatusMap.isEmpty()) {
@@ -407,7 +407,7 @@ class BLEManager(private val context: Context) {
     private fun checkLidStateTimeout() {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastBroadcastTime > LID_CLOSE_TIMEOUT_MS && currentGlobalLidState == true) {
-            Log.d(TAG, "No broadcasts for ${LID_CLOSE_TIMEOUT_MS}ms, forcing lid state to closed")
+            Timber.d("No broadcasts for ${LID_CLOSE_TIMEOUT_MS}ms, forcing lid state to closed")
             currentGlobalLidState = false
             airPodsStatusListener?.onLidStateChanged(false)
         }
@@ -420,7 +420,7 @@ class BLEManager(private val context: Context) {
             try {
                 Base64.decode(irkBase64)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to decode IRK", e)
+                Timber.e("Failed to decode IRK", e)
                 null
             }
         } else {

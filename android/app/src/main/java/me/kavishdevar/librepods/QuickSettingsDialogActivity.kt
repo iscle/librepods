@@ -84,6 +84,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.composables.AdaptiveRainbowBrush
 import me.kavishdevar.librepods.composables.ControlCenterNoiseControlSegmentedButton
@@ -97,6 +98,7 @@ import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.math.abs
 
+@AndroidEntryPoint
 class QuickSettingsDialogActivity : ComponentActivity() {
 
     private var airPodsService: AirPodsService? = null
@@ -417,7 +419,7 @@ fun NewControlCenterDialogContent(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         if (service != null) {
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
 
             Column(
                 modifier = Modifier
@@ -433,7 +435,7 @@ fun NewControlCenterDialogContent(
                     modifier = Modifier.size(48.dp)
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(Modifier.height(4.dp))
 
                 Text(
                     text = deviceName,
@@ -442,7 +444,7 @@ fun NewControlCenterDialogContent(
                     fontWeight = FontWeight.Medium
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(Modifier.height(32.dp))
 
                 VerticalVolumeSlider(
                     displayFraction = animatedVolumeFraction,
@@ -470,7 +472,7 @@ fun NewControlCenterDialogContent(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
 
             Box(
                 modifier = Modifier
@@ -542,7 +544,7 @@ fun NewControlCenterDialogContent(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(Modifier.height(8.dp))
 
                                 Text(
                                     text = getModeLabel(currentAncMode),
@@ -553,7 +555,7 @@ fun NewControlCenterDialogContent(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(24.dp))
+                            Spacer(Modifier.width(24.dp))
 
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -594,7 +596,7 @@ fun NewControlCenterDialogContent(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(Modifier.height(8.dp))
 
                                 Text(
                                     text = "Conversational\nAwareness",
@@ -611,11 +613,11 @@ fun NewControlCenterDialogContent(
             }
 
         } else {
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text("Loading...", color = textColor)
             }
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
         }
     }
 }

@@ -16,8 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods.composables
 
 import android.util.Log
@@ -34,6 +32,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -52,65 +53,43 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-@ExperimentalHazeMaterialsApi
 @Composable
-fun CallControlSettings(hazeState: HazeState) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val textColor = if (isDarkTheme) Color.White else Color.Black
-    val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+fun CallControlSettings(
+    hazeState: HazeState
+) {
     Box(
         modifier = Modifier
-            .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
             .padding(horizontal = 16.dp, vertical = 4.dp)
     ){
         Text(
             text = stringResource(R.string.call_controls),
-            style = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = textColor.copy(alpha = 0.6f)
-            )
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = LocalTextStyle.current.color.copy(alpha = 0.6f)
         )
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(28.dp))
+            .clip(RoundedCornerShape(28.dp))
             .padding(top = 2.dp)
     ) {
-        val service = ServiceManager.getService()!!
-        val callControlEnabledValue = service.aacpManager.controlCommandStatusList.find {
-            it.identifier == AACPManager.Companion.ControlCommandIdentifiers.CALL_MANAGEMENT_CONFIG
-        }?.value ?: byteArrayOf(0x00, 0x03)
-
         val pressOnceText = stringResource(R.string.press_once)
         val pressTwiceText = stringResource(R.string.press_twice)
 
-        var flipped by remember {
-            mutableStateOf(
-                callControlEnabledValue.contentEquals(
-                    byteArrayOf(
-                        0x00,
-                        0x02
-                    )
-                )
-            )
-        }
+        var flipped by remember { mutableStateOf(false) }
         var singlePressAction by remember { mutableStateOf(if (flipped) pressTwiceText else pressOnceText) }
         var doublePressAction by remember { mutableStateOf(if (flipped) pressOnceText else pressTwiceText) }
 
@@ -127,39 +106,6 @@ fun CallControlSettings(hazeState: HazeState) {
         var lastDismissTimeDouble by remember { mutableLongStateOf(0L) }
         var parentHoveredIndexDouble by remember { mutableStateOf<Int?>(null) }
         var parentDragActiveDouble by remember { mutableStateOf(false) }
-
-        LaunchedEffect(Unit) {
-            val listener = object : AACPManager.ControlCommandListener {
-                override fun onControlCommandReceived(controlCommand: AACPManager.ControlCommand) {
-                    if (AACPManager.Companion.ControlCommandIdentifiers.fromByte(controlCommand.identifier) ==
-                        AACPManager.Companion.ControlCommandIdentifiers.CALL_MANAGEMENT_CONFIG
-                    ) {
-                        val newFlipped = controlCommand.value.contentEquals(byteArrayOf(0x00, 0x02))
-                        flipped = newFlipped
-                        singlePressAction = if (newFlipped) pressTwiceText else pressOnceText
-                        doublePressAction = if (newFlipped) pressOnceText else pressTwiceText
-                        Log.d(
-                            "CallControlSettings",
-                            "Control command received, flipped: $newFlipped"
-                        )
-                    }
-                }
-            }
-
-            service.aacpManager.registerControlCommandListener(
-                AACPManager.Companion.ControlCommandIdentifiers.CALL_MANAGEMENT_CONFIG,
-                listener
-            )
-        }
-
-        DisposableEffect(Unit) {
-            onDispose {
-                service.aacpManager.controlCommandListeners[AACPManager.Companion.ControlCommandIdentifiers.CALL_MANAGEMENT_CONFIG]?.clear()
-            }
-        }
-        LaunchedEffect(flipped) {
-            Log.d("CallControlSettings", "Call control flipped: $flipped")
-        }
 
         val density = LocalDensity.current
         val itemHeightPx = with(density) { 48.dp.toPx() }
@@ -179,13 +125,12 @@ fun CallControlSettings(hazeState: HazeState) {
                 Text(
                     text = stringResource(R.string.answer_call),
                     fontSize = 16.sp,
-                    color = textColor,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Text(
                     text = stringResource(R.string.press_once),
                     fontSize = 16.sp,
-                    color = textColor.copy(alpha = 0.6f)
+                    color = LocalTextStyle.current.color.copy(alpha = 0.6f)
                 )
             }
             HorizontalDivider(
@@ -244,11 +189,6 @@ fun CallControlSettings(hazeState: HazeState) {
                                             if (option == pressOnceText) pressTwiceText else pressOnceText
                                         showSinglePressDropdown = false
                                         lastDismissTimeSingle = System.currentTimeMillis()
-                                        val bytes = if (option == pressOnceText) byteArrayOf(
-                                            0x00,
-                                            0x03
-                                        ) else byteArrayOf(0x00, 0x02)
-                                        service.aacpManager.sendControlCommand(0x24, bytes)
                                     }
                                 }
                                 parentHoveredIndexSingle = null
@@ -265,7 +205,6 @@ fun CallControlSettings(hazeState: HazeState) {
                 Text(
                     text = stringResource(R.string.mute_unmute),
                     fontSize = 16.sp,
-                    color = textColor,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Box(
@@ -278,19 +217,13 @@ fun CallControlSettings(hazeState: HazeState) {
                     ) {
                         Text(
                             text = singlePressAction,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = textColor.copy(alpha = 0.8f),
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            )
+                            fontSize = 16.sp,
+                            color = LocalTextStyle.current.color.copy(alpha = 0.8f)
                         )
                         Text(
                             text = "􀆏",
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = textColor.copy(alpha = 0.6f),
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            ),
+                            fontSize = 16.sp,
+                            color = LocalTextStyle.current.color.copy(alpha = 0.6f),
                             modifier = Modifier
                                 .padding(start = 6.dp)
                         )
@@ -313,11 +246,6 @@ fun CallControlSettings(hazeState: HazeState) {
                             doublePressAction =
                                 if (option == pressOnceText) pressTwiceText else pressOnceText
                             showSinglePressDropdown = false
-                            val bytes = if (option == pressOnceText) byteArrayOf(
-                                0x00,
-                                0x03
-                            ) else byteArrayOf(0x00, 0x02)
-                            service.aacpManager.sendControlCommand(0x24, bytes)
                         },
                         hazeState = hazeState
                     )
@@ -379,11 +307,6 @@ fun CallControlSettings(hazeState: HazeState) {
                                             if (option == pressOnceText) pressTwiceText else pressOnceText
                                         showDoublePressDropdown = false
                                         lastDismissTimeDouble = System.currentTimeMillis()
-                                        val bytes = if (option == pressOnceText) byteArrayOf(
-                                            0x00,
-                                            0x02
-                                        ) else byteArrayOf(0x00, 0x03)
-                                        service.aacpManager.sendControlCommand(0x24, bytes)
                                     }
                                 }
                                 parentHoveredIndexDouble = null
@@ -400,7 +323,6 @@ fun CallControlSettings(hazeState: HazeState) {
                 Text(
                     text = stringResource(R.string.hang_up),
                     fontSize = 16.sp,
-                    color = textColor,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
                 Box(
@@ -413,19 +335,13 @@ fun CallControlSettings(hazeState: HazeState) {
                     ) {
                         Text(
                             text = doublePressAction,
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = textColor.copy(alpha = 0.8f),
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            )
+                            fontSize = 16.sp,
+                            color = LocalTextStyle.current.color.copy(alpha = 0.8f)
                         )
                         Text(
                             text = "􀆏",
-                            style = TextStyle(
-                                fontSize = 16.sp,
-                                color = textColor.copy(alpha = 0.6f),
-                                fontFamily = FontFamily(Font(R.font.sf_pro))
-                            ),
+                            fontSize = 16.sp,
+                            color = LocalTextStyle.current.color.copy(alpha = 0.6f),
                             modifier = Modifier
                                 .padding(start = 6.dp)
                         )
@@ -448,11 +364,6 @@ fun CallControlSettings(hazeState: HazeState) {
                             singlePressAction =
                                 if (option == pressOnceText) pressTwiceText else pressOnceText
                             showDoublePressDropdown = false
-                            val bytes = if (option == pressOnceText) byteArrayOf(
-                                0x00,
-                                0x02
-                            ) else byteArrayOf(0x00, 0x03)
-                            service.aacpManager.sendControlCommand(0x24, bytes)
                         },
                         hazeState = hazeState
                     )
@@ -462,9 +373,12 @@ fun CallControlSettings(hazeState: HazeState) {
     }
 }
 
-@ExperimentalHazeMaterialsApi
 @Preview
 @Composable
 fun CallControlSettingsPreview() {
-    CallControlSettings(HazeState())
+    LibrePodsTheme {
+        Surface {
+            CallControlSettings(HazeState())
+        }
+    }
 }

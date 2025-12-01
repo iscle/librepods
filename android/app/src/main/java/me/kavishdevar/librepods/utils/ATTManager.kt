@@ -32,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.lsposed.hiddenapibypass.HiddenApiBypass
+import timber.log.Timber
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.LinkedBlockingQueue
@@ -76,7 +77,7 @@ class ATTManager(private val device: BluetoothDevice) {
         socket!!.connect()
         input = socket!!.inputStream
         output = socket!!.outputStream
-        Log.d(TAG, "Connected to ATT")
+        Timber.d("Connected to ATT")
 
         notificationJob = CoroutineScope(Dispatchers.IO).launch {
             while (socket?.isConnected == true) {
@@ -89,9 +90,9 @@ class ATTManager(private val device: BluetoothDevice) {
                         listeners[handle]?.forEach { listener ->
                             try {
                                 listener(value)
-                                Log.d(TAG, "Dispatched notification for handle $handle to listener, with value ${value.joinToString(" ") { String.format("%02X", it) }}")
+                                Timber.d("Dispatched notification for handle $handle to listener, with value ${value.joinToString(" ") { String.format("%02X", it) }}")
                             } catch (e: Exception) {
-                                Log.w(TAG, "Error in listener for handle $handle: ${e.message}")
+                                Timber.w("Error in listener for handle $handle: ${e.message}")
                             }
                         }
                     } else {
@@ -99,7 +100,7 @@ class ATTManager(private val device: BluetoothDevice) {
                         responses.put(pdu)
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "Error reading notification/response: ${e.message}")
+                    Timber.w("Error reading notification/response: ${e.message}")
                     if (socket?.isConnected != true) break
                 }
             }
@@ -111,7 +112,7 @@ class ATTManager(private val device: BluetoothDevice) {
             notificationJob?.cancel()
             socket?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "Error closing socket: ${e.message}")
+            Timber.w("Error closing socket: ${e.message}")
         }
     }
 
@@ -145,7 +146,7 @@ class ATTManager(private val device: BluetoothDevice) {
         try {
             readResponse()
         } catch (e: Exception) {
-            Log.w(TAG, "No write response received: ${e.message}")
+            Timber.w("No write response received: ${e.message}")
         }
     }
 
@@ -158,14 +159,14 @@ class ATTManager(private val device: BluetoothDevice) {
         try {
             readResponse()
         } catch (e: Exception) {
-            Log.w(TAG, "No write response received: ${e.message}")
+            Timber.w("No write response received: ${e.message}")
         }
     }
 
     private fun writeRaw(pdu: ByteArray) {
         output?.write(pdu)
         output?.flush()
-        Log.d(TAG, "writeRaw: ${pdu.joinToString(" ") { String.format("%02X", it) }}")
+        Timber.d("writeRaw: ${pdu.joinToString(" ") { String.format("%02X", it) }}")
     }
 
     // rename / specialize: read raw PDU directly from input stream (blocking)
@@ -178,7 +179,7 @@ class ATTManager(private val device: BluetoothDevice) {
             throw IllegalStateException("End of stream reached")
         }
         val data = buffer.copyOfRange(0, len)
-        Log.d(TAG, "readPDU: ${data.joinToString(" ") { String.format("%02X", it) }}")
+        Timber.d("readPDU: ${data.joinToString(" ") { String.format("%02X", it) }}")
         return data
     }
 
@@ -187,7 +188,7 @@ class ATTManager(private val device: BluetoothDevice) {
         try {
             val resp = responses.poll(timeoutMs, TimeUnit.MILLISECONDS)
                 ?: throw IllegalStateException("No response read from ATT socket within $timeoutMs ms")
-            Log.d(TAG, "readResponse: ${resp.joinToString(" ") { String.format("%02X", it) }}")
+            Timber.d("readResponse: ${resp.joinToString(" ") { String.format("%02X", it) }}")
             return resp.copyOfRange(1, resp.size)
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()

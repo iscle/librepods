@@ -6,7 +6,6 @@
     android:initialLayout="@layout/noise_control_widget"
     android:minWidth="180dp"
     android:minHeight="40dp"
-    android:previewImage="@drawable/example_appwidget_preview"
     android:previewLayout="@layout/noise_control_widget"
     android:resizeMode="horizontal"
     android:targetCellWidth="3"

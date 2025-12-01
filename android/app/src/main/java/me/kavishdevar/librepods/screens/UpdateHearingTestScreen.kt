@@ -19,20 +19,19 @@
 package me.kavishdevar.librepods.screens
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,28 +44,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.ATTHandles
 import me.kavishdevar.librepods.utils.HearingAidSettings
 import me.kavishdevar.librepods.utils.parseHearingAidSettingsResponse
 import me.kavishdevar.librepods.utils.sendHearingAidSettings
+import timber.log.Timber
 import java.io.IOException
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -74,10 +70,9 @@ private var debounceJob: MutableState<Job?> = mutableStateOf(null)
 private const val TAG = "HearingAidAdjustments"
 
 @SuppressLint("DefaultLocale")
-@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
 @Composable
-fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
+fun UpdateHearingTestScreen() {
     val verticalScrollState = rememberScrollState()
     val attManager = ServiceManager.getService()?.attManager
     if (attManager == null) {
@@ -94,8 +89,14 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
     val aacpManager = remember { ServiceManager.getService()?.aacpManager }
     val backdrop = rememberLayerBackdrop()
     StyledScaffold(
-        title = stringResource(R.string.hearing_test)
-    ) { spacerHeight, hazeState ->
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.hearing_test))
+                }
+            )
+        },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .hazeSource(hazeState)
@@ -105,14 +106,13 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
 
             Text(
                 text = stringResource(R.string.hearing_test_value_instruction),
                 fontSize = 16.sp,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                fontFamily = FontFamily(Font(R.font.sf_pro))
             )
 
             val conversationBoostEnabled = remember { mutableStateOf(false) }
@@ -170,9 +170,9 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                             leftEQ.value = parsed.leftEQ.copyOf()
                             rightEQ.value = parsed.rightEQ.copyOf()
                             conversationBoostEnabled.value = parsed.leftConversationBoost
-                            Log.d(TAG, "Updated hearing aid settings from notification")
+                            Timber.d("Updated hearing aid settings from notification")
                         } else {
-                            Log.w(TAG, "Failed to parse hearing aid settings from notification")
+                            Timber.w("Failed to parse hearing aid settings from notification")
                         }
                     }
                 }
@@ -193,12 +193,12 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
 
             LaunchedEffect(leftEQ.value, rightEQ.value, conversationBoostEnabled.value, initialLoadComplete.value, initialReadSucceeded.value) {
                 if (!initialLoadComplete.value) {
-                    Log.d(TAG, "Initial device load not complete - skipping send")
+                    Timber.d("Initial device load not complete - skipping send")
                     return@LaunchedEffect
                 }
 
                 if (!initialReadSucceeded.value) {
-                    Log.d(TAG, "Initial device read not successful yet - skipping send until read succeeds")
+                    Timber.d("Initial device read not successful yet - skipping send until read succeeds")
                     return@LaunchedEffect
                 }
 
@@ -217,32 +217,32 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                     balance = 0.5f,
                     ownVoiceAmplification = 0.5f
                 )
-                Log.d(TAG, "Updated settings: ${hearingAidSettings.value}")
+                Timber.d("Updated settings: ${hearingAidSettings.value}")
                 sendHearingAidSettings(attManager, hearingAidSettings.value, debounceJob)
             }
 
             LaunchedEffect(Unit) {
-                Log.d(TAG, "Connecting to ATT...")
+                Timber.d("Connecting to ATT...")
                 try {
                     attManager.enableNotifications(ATTHandles.HEARING_AID)
                     attManager.registerListener(ATTHandles.HEARING_AID, hearingAidATTListener)
 
                     try {
                         if (aacpManager != null) {
-                            Log.d(TAG, "Found AACPManager, reading cached EQ data")
+                            Timber.d("Found AACPManager, reading cached EQ data")
                             val aacpEQ = aacpManager.eqData
                             if (aacpEQ.isNotEmpty()) {
                                 leftEQ.value = aacpEQ.copyOf()
                                 rightEQ.value = aacpEQ.copyOf()
-                                Log.d(TAG, "Populated EQ from AACPManager: ${aacpEQ.toList()}")
+                                Timber.d("Populated EQ from AACPManager: ${aacpEQ.toList()}")
                             } else {
-                                Log.d(TAG, "AACPManager EQ data empty")
+                                Timber.d("AACPManager EQ data empty")
                             }
                         } else {
-                            Log.d(TAG, "No AACPManager available")
+                            Timber.d("No AACPManager available")
                         }
                     } catch (e: Exception) {
-                        Log.w(TAG, "Error reading EQ from AACPManager: ${e.message}")
+                        Timber.w("Error reading EQ from AACPManager: ${e.message}")
                     }
 
                     var parsedSettings: HearingAidSettings? = null
@@ -252,25 +252,25 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                             val data = attManager.read(ATTHandles.HEARING_AID)
                             parsedSettings = parseHearingAidSettingsResponse(data = data)
                             if (parsedSettings != null) {
-                                Log.d(TAG, "Parsed settings on attempt $attempt")
+                                Timber.d("Parsed settings on attempt $attempt")
                                 break
                             } else {
-                                Log.d(TAG, "Parsing returned null on attempt $attempt")
+                                Timber.d("Parsing returned null on attempt $attempt")
                             }
                         } catch (e: Exception) {
-                            Log.w(TAG, "Read attempt $attempt failed: ${e.message}")
+                            Timber.w("Read attempt $attempt failed: ${e.message}")
                         }
                         delay(200)
                     }
 
                     if (parsedSettings != null) {
-                        Log.d(TAG, "Initial hearing aid settings: $parsedSettings")
+                        Timber.d("Initial hearing aid settings: $parsedSettings")
                         leftEQ.value = parsedSettings.leftEQ.copyOf()
                         rightEQ.value = parsedSettings.rightEQ.copyOf()
                         conversationBoostEnabled.value = parsedSettings.leftConversationBoost
                         initialReadSucceeded.value = true
                     } else {
-                        Log.d(TAG, "Failed to read/parse initial hearing aid settings after ${initialReadAttempts.intValue} attempts")
+                        Timber.d("Failed to read/parse initial hearing aid settings after ${initialReadAttempts.intValue} attempts")
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
@@ -285,20 +285,18 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Spacer(modifier = Modifier.width(60.dp))
+                Spacer(Modifier.width(60.dp))
                 Text(
                     text = stringResource(R.string.left),
                     fontSize = 18.sp,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
                 )
                 Text(
                     text = stringResource(R.string.right),
                     fontSize = 18.sp,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
                 )
             }
 
@@ -314,7 +312,6 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                             .align(Alignment.CenterVertically),
                         textAlign = TextAlign.End,
                         fontSize = 16.sp,
-                        fontFamily = FontFamily(Font(R.font.sf_pro)),
                     )
                     OutlinedTextField(
                         value = leftEQ.value[index].toString(),
@@ -328,8 +325,7 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                         },
 //                        label = { Text("Value", fontSize = 14.sp, fontFamily = FontFamily(Font(R.font.sf_pro))) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = TextStyle(
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        textStyle = LocalTextStyle.current.copy(
                             fontSize = 14.sp
                         ),
                         modifier = Modifier.weight(1f)
@@ -346,8 +342,7 @@ fun UpdateHearingTestScreen(@Suppress("unused") navController: NavController) {
                         },
 //                        label = { Text("Value", fontSize = 14.sp, fontFamily = FontFamily(Font(R.font.sf_pro))) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = TextStyle(
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        textStyle = LocalTextStyle.current.copy(
                             fontSize = 14.sp
                         ),
                         modifier = Modifier.weight(1f)

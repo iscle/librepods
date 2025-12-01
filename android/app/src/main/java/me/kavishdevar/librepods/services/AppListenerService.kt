@@ -22,8 +22,9 @@ package me.kavishdevar.librepods.services
 
 
 import android.accessibilityservice.AccessibilityService
-import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import dagger.hilt.android.AndroidEntryPoint
+import timber.log.Timber
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 private const val TAG="AppListenerService"
@@ -40,6 +41,7 @@ val cameraPackages = mutableSetOf(
 var cameraOpen = false
 private var currentCustomPackage: String? = null
 
+@AndroidEntryPoint
 class AppListenerService : AccessibilityService() {
     private lateinit var prefs: android.content.SharedPreferences
     private val preferenceChangeListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
@@ -74,9 +76,9 @@ class AppListenerService : AccessibilityService() {
             if (ev?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
                 val pkg = ev.packageName?.toString() ?: return
                 if (pkg == "com.android.systemui") return // after camera opens, systemui is opened, probably for the privacy indicators
-                Log.d(TAG, "Package: $pkg, cameraOpen: $cameraOpen")
+                Timber.d("Package: $pkg, cameraOpen: $cameraOpen")
                 if (pkg in cameraPackages) {
-                    Log.d(TAG, "Camera app opened: $pkg")
+                    Timber.d("Camera app opened: $pkg")
                     if (!cameraOpen) cameraOpen = true
                     ServiceManager.getService()?.cameraOpened()
                 } else {
@@ -84,13 +86,13 @@ class AppListenerService : AccessibilityService() {
                         cameraOpen = false
                         ServiceManager.getService()?.cameraClosed()
                     } else {
-                        Log.d(TAG, "ignoring")
+                        Timber.d("ignoring")
                     }
                 }
-                // Log.d(TAG, "Opened: $pkg")
+                // Timber.d("Opened: $pkg")
             }
         } catch(e: Exception) {
-            Log.e(TAG, "Error in onAccessibilityEvent: ${e.message}")
+            Timber.e("Error in onAccessibilityEvent: ${e.message}")
         }
     }
 

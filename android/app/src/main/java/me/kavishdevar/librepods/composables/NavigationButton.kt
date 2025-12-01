@@ -18,6 +18,7 @@
 
 package me.kavishdevar.librepods.composables
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -40,23 +42,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 
 @Composable
 fun NavigationButton(
-    to: String,
     name: String,
-    navController: NavController, onClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
     independent: Boolean = true,
     title: String? = null,
     description: String? = null,
@@ -66,20 +62,18 @@ fun NavigationButton(
     val isDarkTheme = isSystemInDarkTheme()
     var backgroundColor by remember { mutableStateOf(if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
     val animatedBackgroundColor by animateColorAsState(targetValue = backgroundColor, animationSpec = tween(durationMillis = 500))
+
     Column {
         if (title != null) {
             Box(
                 modifier = Modifier
-                    .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
             ){
                 Text(
                     text = title,
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f),
-                    )
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
                 )
             }
         }
@@ -94,9 +88,7 @@ fun NavigationButton(
                             tryAwaitRelease()
                             backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
                         },
-                        onTap = {
-                            if (onClick != null) onClick() else navController.navigate(to)
-                        }
+                        onTap = { onClick() }
                     )
                 }
                 .padding(horizontal = 16.dp),
@@ -104,30 +96,21 @@ fun NavigationButton(
         ) {
             Text(
                 text = name,
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(R.font.sf_pro)),
-                    color = if (isDarkTheme) Color.White else Color.Black,
-                )
+                fontSize = 16.sp,
+                color = if (isDarkTheme) Color.White else Color.Black
             )
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
             if (currentState != null) {
                 Text(
                     text = currentState,
-                    style = TextStyle(
-                        fontSize = 16.sp,
-                        fontFamily = FontFamily(Font(R.font.sf_pro)),
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.8f),
-                    )
+                    fontSize = 16.sp,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.8f)
                 )
             }
             Text(
-                text = "􀯻",
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(R.font.sf_pro)),
-                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
-                ),
+                text = "\uDBC0\uDEE1", // chevron symbol
+                fontSize = 16.sp,
+                color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f),
                 modifier = Modifier
                     .padding(start = if (currentState != null) 6.dp else 0.dp)
             )
@@ -135,26 +118,47 @@ fun NavigationButton(
         if (description != null) {
             Box(
                 modifier = Modifier
-                    .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7)) // because blur effect doesn't work for some reason
                     .padding(horizontal = 16.dp, vertical = 4.dp),
             ) {
                 Text(
                     text = description,
-                    style = TextStyle(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Light,
-                        color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f),
-                        fontFamily = FontFamily(Font(R.font.sf_pro))
-                    ),
-                    // modifier = Modifier.padding(horizontal = 16.dp)
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Light,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
                 )
             }
         }
     }
 }
 
-@Preview
+@Preview(
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
 @Composable
 fun NavigationButtonPreview() {
-    NavigationButton("to", "Name", NavController(LocalContext.current))
+    LibrePodsTheme {
+        Surface {
+            NavigationButton(
+                title = "Title",
+                name = "Name",
+                onClick = {},
+            )
+        }
+    }
+}
+
+@Preview(
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+fun NavigationButtonDarkPreview() {
+    LibrePodsTheme {
+        Surface {
+            NavigationButton(
+                title = "Title",
+                name = "Name",
+                onClick = {},
+            )
+        }
+    }
 }

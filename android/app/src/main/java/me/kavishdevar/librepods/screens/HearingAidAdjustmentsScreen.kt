@@ -19,46 +19,45 @@
 package me.kavishdevar.librepods.screens
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledSlider
-import me.kavishdevar.librepods.composables.StyledToggle
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.ATTHandles
 import me.kavishdevar.librepods.utils.HearingAidSettings
 import me.kavishdevar.librepods.utils.parseHearingAidSettingsResponse
 import me.kavishdevar.librepods.utils.sendHearingAidSettings
+import timber.log.Timber
 import java.io.IOException
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -66,10 +65,9 @@ private var debounceJob: MutableState<Job?> = mutableStateOf(null)
 private const val TAG = "HearingAidAdjustments"
 
 @SuppressLint("DefaultLocale")
-@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
 @Composable
-fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController) {
+fun HearingAidAdjustmentsScreen() {
     isSystemInDarkTheme()
     val verticalScrollState = rememberScrollState()
     val hazeState = remember { HazeState() }
@@ -78,9 +76,15 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
     val aacpManager = remember { ServiceManager.getService()?.aacpManager }
     val backdrop = rememberLayerBackdrop()
     StyledScaffold(
-        title = stringResource(R.string.adjustments)
-    ) { spacerHeight ->
-        Column(
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.adjustments))
+                }
+            )
+        },
+    ) { innerPadding ->
+    Column(
             modifier = Modifier
                 .hazeSource(hazeState)
                 .fillMaxSize()
@@ -89,46 +93,46 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
 
-            val amplificationSliderValue = remember { mutableFloatStateOf(0.5f) }
-            val balanceSliderValue = remember { mutableFloatStateOf(0.5f) }
-            val toneSliderValue = remember { mutableFloatStateOf(0.5f) }
-            val ambientNoiseReductionSliderValue = remember { mutableFloatStateOf(0.0f) }
-            val conversationBoostEnabled = remember { mutableStateOf(false) }
-            val eq = remember { mutableStateOf(FloatArray(8)) }
-            val ownVoiceAmplification = remember { mutableFloatStateOf(0.5f) }
+            var amplificationSliderValue by remember { mutableFloatStateOf(0.5f) }
+            var balanceSliderValue by remember { mutableFloatStateOf(0.5f) }
+            var toneSliderValue by remember { mutableFloatStateOf(0.5f) }
+            var ambientNoiseReductionSliderValue by remember { mutableFloatStateOf(0.0f) }
+            var conversationBoostEnabled by remember { mutableStateOf(false) }
+            var eq by remember { mutableStateOf(FloatArray(8)) }
+            var ownVoiceAmplification by remember { mutableFloatStateOf(0.5f) }
 
-            val phoneMediaEQ = remember { mutableStateOf(FloatArray(8) { 0.5f }) }
-            val phoneEQEnabled = remember { mutableStateOf(false) }
-            val mediaEQEnabled = remember { mutableStateOf(false) }
+            var phoneMediaEQ by remember { mutableStateOf(FloatArray(8) { 0.5f }) }
+            var phoneEQEnabled by remember { mutableStateOf(false) }
+            var mediaEQEnabled by remember { mutableStateOf(false) }
 
-            val initialLoadComplete = remember { mutableStateOf(false) }
+            var initialLoadComplete by remember { mutableStateOf(false) }
 
-            val initialReadSucceeded = remember { mutableStateOf(false) }
-            val initialReadAttempts = remember { mutableIntStateOf(0) }
+            var initialReadSucceeded by remember { mutableStateOf(false) }
+            var initialReadAttempts by remember { mutableIntStateOf(0) }
 
-            val hearingAidSettings = remember {
+            var hearingAidSettings by remember {
                 mutableStateOf(
                     HearingAidSettings(
-                        leftEQ = eq.value,
-                        rightEQ = eq.value,
-                        leftAmplification = amplificationSliderValue.floatValue + (0.5f - balanceSliderValue.floatValue) * amplificationSliderValue.floatValue * 2,
-                        rightAmplification = amplificationSliderValue.floatValue + (balanceSliderValue.floatValue - 0.5f) * amplificationSliderValue.floatValue * 2,
-                        leftTone = toneSliderValue.floatValue,
-                        rightTone = toneSliderValue.floatValue,
-                        leftConversationBoost = conversationBoostEnabled.value,
-                        rightConversationBoost = conversationBoostEnabled.value,
-                        leftAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                        rightAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                        netAmplification = amplificationSliderValue.floatValue,
-                        balance = balanceSliderValue.floatValue,
-                        ownVoiceAmplification = ownVoiceAmplification.floatValue
+                        leftEQ = eq,
+                        rightEQ = eq,
+                        leftAmplification = amplificationSliderValue + (0.5f - balanceSliderValue) * amplificationSliderValue * 2,
+                        rightAmplification = amplificationSliderValue + (balanceSliderValue - 0.5f) * amplificationSliderValue * 2,
+                        leftTone = toneSliderValue,
+                        rightTone = toneSliderValue,
+                        leftConversationBoost = conversationBoostEnabled,
+                        rightConversationBoost = conversationBoostEnabled,
+                        leftAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                        rightAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                        netAmplification = amplificationSliderValue,
+                        balance = balanceSliderValue,
+                        ownVoiceAmplification = ownVoiceAmplification
                     )
                 )
             }
 
-            val hearingAidEnabled = remember {
+            var hearingAidEnabled by remember {
                 val aidStatus = aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID }
                 val assistStatus = aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG }
                 mutableStateOf((aidStatus?.value?.getOrNull(1) == 0x01.toByte()) && (assistStatus?.value?.getOrNull(0) == 0x01.toByte()))
@@ -141,7 +145,7 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
                             controlCommand.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG.value) {
                             val aidStatus = aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID }
                             val assistStatus = aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_ASSIST_CONFIG }
-                            hearingAidEnabled.value = (aidStatus?.value?.getOrNull(1) == 0x01.toByte()) && (assistStatus?.value?.getOrNull(0) == 0x01.toByte())
+                            hearingAidEnabled = (aidStatus?.value?.getOrNull(1) == 0x01.toByte()) && (assistStatus?.value?.getOrNull(0) == 0x01.toByte())
                         }
                     }
                 }
@@ -152,16 +156,16 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
                     override fun invoke(value: ByteArray) {
                         val parsed = parseHearingAidSettingsResponse(value)
                         if (parsed != null) {
-                            amplificationSliderValue.floatValue = parsed.netAmplification
-                            balanceSliderValue.floatValue = parsed.balance
-                            toneSliderValue.floatValue = parsed.leftTone
-                            ambientNoiseReductionSliderValue.floatValue = parsed.leftAmbientNoiseReduction
-                            conversationBoostEnabled.value = parsed.leftConversationBoost
-                            eq.value = parsed.leftEQ.copyOf()
-                            ownVoiceAmplification.floatValue = parsed.ownVoiceAmplification
-                            Log.d(TAG, "Updated hearing aid settings from notification")
+                            amplificationSliderValue = parsed.netAmplification
+                            balanceSliderValue = parsed.balance
+                            toneSliderValue = parsed.leftTone
+                            ambientNoiseReductionSliderValue = parsed.leftAmbientNoiseReduction
+                            conversationBoostEnabled = parsed.leftConversationBoost
+                            eq = parsed.leftEQ.copyOf()
+                            ownVoiceAmplification = parsed.ownVoiceAmplification
+                            Timber.d("Updated hearing aid settings from notification")
                         } else {
-                            Log.w(TAG, "Failed to parse hearing aid settings from notification")
+                            Timber.w("Failed to parse hearing aid settings from notification")
                         }
                     }
                 }
@@ -180,106 +184,106 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
                 }
             }
 
-            LaunchedEffect(amplificationSliderValue.floatValue, balanceSliderValue.floatValue, toneSliderValue.floatValue, conversationBoostEnabled.value, ambientNoiseReductionSliderValue.floatValue, ownVoiceAmplification.floatValue, initialLoadComplete.value, initialReadSucceeded.value) {
-                if (!initialLoadComplete.value) {
-                    Log.d(TAG, "Initial device load not complete - skipping send")
+            LaunchedEffect(amplificationSliderValue, balanceSliderValue, toneSliderValue, conversationBoostEnabled, ambientNoiseReductionSliderValue, ownVoiceAmplification, initialLoadComplete, initialReadSucceeded) {
+                if (!initialLoadComplete) {
+                    Timber.d("Initial device load not complete - skipping send")
                     return@LaunchedEffect
                 }
 
-                if (!initialReadSucceeded.value) {
-                    Log.d(TAG, "Initial device read not successful yet - skipping send until read succeeds")
+                if (!initialReadSucceeded) {
+                    Timber.d("Initial device read not successful yet - skipping send until read succeeds")
                     return@LaunchedEffect
                 }
 
-                hearingAidSettings.value = HearingAidSettings(
-                    leftEQ = eq.value,
-                    rightEQ = eq.value,
-                    leftAmplification = amplificationSliderValue.floatValue + if (balanceSliderValue.floatValue < 0) -balanceSliderValue.floatValue else 0f,
-                    rightAmplification = amplificationSliderValue.floatValue + if (balanceSliderValue.floatValue > 0) balanceSliderValue.floatValue else 0f,
-                    leftTone = toneSliderValue.floatValue,
-                    rightTone = toneSliderValue.floatValue,
-                    leftConversationBoost = conversationBoostEnabled.value,
-                    rightConversationBoost = conversationBoostEnabled.value,
-                    leftAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                    rightAmbientNoiseReduction = ambientNoiseReductionSliderValue.floatValue,
-                    netAmplification = amplificationSliderValue.floatValue,
-                    balance = balanceSliderValue.floatValue,
-                    ownVoiceAmplification = ownVoiceAmplification.floatValue
+                hearingAidSettings = HearingAidSettings(
+                    leftEQ = eq,
+                    rightEQ = eq,
+                    leftAmplification = amplificationSliderValue + if (balanceSliderValue < 0) -balanceSliderValue else 0f,
+                    rightAmplification = amplificationSliderValue + if (balanceSliderValue > 0) balanceSliderValue else 0f,
+                    leftTone = toneSliderValue,
+                    rightTone = toneSliderValue,
+                    leftConversationBoost = conversationBoostEnabled,
+                    rightConversationBoost = conversationBoostEnabled,
+                    leftAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                    rightAmbientNoiseReduction = ambientNoiseReductionSliderValue,
+                    netAmplification = amplificationSliderValue,
+                    balance = balanceSliderValue,
+                    ownVoiceAmplification = ownVoiceAmplification
                 )
-                Log.d(TAG, "Updated settings: ${hearingAidSettings.value}")
-                sendHearingAidSettings(attManager, hearingAidSettings.value, debounceJob)
+                Timber.d("Updated settings: ${hearingAidSettings}")
+                sendHearingAidSettings(attManager, hearingAidSettings, debounceJob)
             }
 
             LaunchedEffect(Unit) {
-                Log.d(TAG, "Connecting to ATT...")
+                Timber.d("Connecting to ATT...")
                 try {
                     attManager.enableNotifications(ATTHandles.HEARING_AID)
                     attManager.registerListener(ATTHandles.HEARING_AID, hearingAidATTListener)
 
                     try {
                         if (aacpManager != null) {
-                            Log.d(TAG, "Found AACPManager, reading cached EQ data")
+                            Timber.d("Found AACPManager, reading cached EQ data")
                             val aacpEQ = aacpManager.eqData
                             if (aacpEQ.isNotEmpty()) {
-                                eq.value = aacpEQ.copyOf()
-                                phoneMediaEQ.value = aacpEQ.copyOf()
-                                phoneEQEnabled.value = aacpManager.eqOnPhone
-                                mediaEQEnabled.value = aacpManager.eqOnMedia
-                                Log.d(TAG, "Populated EQ from AACPManager: ${aacpEQ.toList()}")
+                                eq = aacpEQ.copyOf()
+                                phoneMediaEQ = aacpEQ.copyOf()
+                                phoneEQEnabled = aacpManager.eqOnPhone
+                                mediaEQEnabled = aacpManager.eqOnMedia
+                                Timber.d("Populated EQ from AACPManager: ${aacpEQ.toList()}")
                             } else {
-                                Log.d(TAG, "AACPManager EQ data empty")
+                                Timber.d("AACPManager EQ data empty")
                             }
                         } else {
-                            Log.d(TAG, "No AACPManager available")
+                            Timber.d("No AACPManager available")
                         }
                     } catch (e: Exception) {
-                        Log.w(TAG, "Error reading EQ from AACPManager: ${e.message}")
+                        Timber.w("Error reading EQ from AACPManager: ${e.message}")
                     }
 
                     var parsedSettings: HearingAidSettings? = null
                     for (attempt in 1..3) {
-                        initialReadAttempts.intValue = attempt
+                        initialReadAttempts = attempt
                         try {
                             val data = attManager.read(ATTHandles.HEARING_AID)
                             parsedSettings = parseHearingAidSettingsResponse(data = data)
                             if (parsedSettings != null) {
-                                Log.d(TAG, "Parsed settings on attempt $attempt")
+                                Timber.d("Parsed settings on attempt $attempt")
                                 break
                             } else {
-                                Log.d(TAG, "Parsing returned null on attempt $attempt")
+                                Timber.d("Parsing returned null on attempt $attempt")
                             }
                         } catch (e: Exception) {
-                            Log.w(TAG, "Read attempt $attempt failed: ${e.message}")
+                            Timber.w("Read attempt $attempt failed: ${e.message}")
                         }
                         delay(200)
                     }
 
                     if (parsedSettings != null) {
-                        Log.d(TAG, "Initial hearing aid settings: $parsedSettings")
-                        amplificationSliderValue.floatValue = parsedSettings.netAmplification
-                        balanceSliderValue.floatValue = parsedSettings.balance
-                        toneSliderValue.floatValue = parsedSettings.leftTone
-                        ambientNoiseReductionSliderValue.floatValue = parsedSettings.leftAmbientNoiseReduction
-                        conversationBoostEnabled.value = parsedSettings.leftConversationBoost
-                        eq.value = parsedSettings.leftEQ.copyOf()
-                        ownVoiceAmplification.floatValue = parsedSettings.ownVoiceAmplification
-                        initialReadSucceeded.value = true
+                        Timber.d("Initial hearing aid settings: $parsedSettings")
+                        amplificationSliderValue = parsedSettings.netAmplification
+                        balanceSliderValue = parsedSettings.balance
+                        toneSliderValue = parsedSettings.leftTone
+                        ambientNoiseReductionSliderValue = parsedSettings.leftAmbientNoiseReduction
+                        conversationBoostEnabled = parsedSettings.leftConversationBoost
+                        eq = parsedSettings.leftEQ.copyOf()
+                        ownVoiceAmplification = parsedSettings.ownVoiceAmplification
+                        initialReadSucceeded = true
                     } else {
-                        Log.d(TAG, "Failed to read/parse initial hearing aid settings after ${initialReadAttempts.intValue} attempts")
+                        Timber.d("Failed to read/parse initial hearing aid settings after ${initialReadAttempts} attempts")
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
                 } finally {
-                    initialLoadComplete.value = true
+                    initialLoadComplete = true
                 }
             }
 
             StyledSlider(
                 label = stringResource(R.string.amplification),
                 valueRange = -1f..1f,
-                mutableFloatState = amplificationSliderValue,
+                value = amplificationSliderValue,
                 onValueChange = {
-                    amplificationSliderValue.floatValue = it
+                    amplificationSliderValue = it
                 },
                 startIcon = "􀊥",
                 endIcon = "􀊩",
@@ -287,18 +291,18 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             )
 
 
-            StyledToggle(
-                label = stringResource(R.string.swipe_to_control_amplification),
-                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.HPS_GAIN_SWIPE,
-                description = stringResource(R.string.swipe_amplification_description)
-            )
+//            StyledToggle(
+//                label = stringResource(R.string.swipe_to_control_amplification),
+//                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.HPS_GAIN_SWIPE,
+//                description = stringResource(R.string.swipe_amplification_description)
+//            )
 
             StyledSlider(
                 label = stringResource(R.string.balance),
                 valueRange = -1f..1f,
-                mutableFloatState = balanceSliderValue,
+                value = balanceSliderValue,
                 onValueChange = {
-                    balanceSliderValue.floatValue = it
+                    balanceSliderValue = it
                 },
                 snapPoints = listOf(-1f, 0f, 1f),
                 startLabel = stringResource(R.string.left),
@@ -309,9 +313,9 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             StyledSlider(
                 label = stringResource(R.string.tone),
                 valueRange = -1f..1f,
-                mutableFloatState = toneSliderValue,
+                value = toneSliderValue,
                 onValueChange = {
-                    toneSliderValue.floatValue = it
+                    toneSliderValue = it
                 },
                 startLabel = stringResource(R.string.darker),
                 endLabel = stringResource(R.string.brighter),
@@ -321,21 +325,21 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             StyledSlider(
                 label = stringResource(R.string.ambient_noise_reduction),
                 valueRange = 0f..1f,
-                mutableFloatState = ambientNoiseReductionSliderValue,
+                value = ambientNoiseReductionSliderValue,
                 onValueChange = {
-                    ambientNoiseReductionSliderValue.floatValue = it
+                    ambientNoiseReductionSliderValue = it
                 },
                 startLabel = stringResource(R.string.less),
                 endLabel = stringResource(R.string.more),
                 independent = true,
             )
 
-            StyledToggle(
-                label = stringResource(R.string.conversation_boost),
-                checkedState = conversationBoostEnabled,
-                independent = true,
-                description = stringResource(R.string.conversation_boost_description)
-            )
+//            StyledToggle(
+//                label = stringResource(R.string.conversation_boost),
+//                checkedState = conversationBoostEnabled,
+//                independent = true,
+//                description = stringResource(R.string.conversation_boost_description)
+//            )
         }
     }
 }

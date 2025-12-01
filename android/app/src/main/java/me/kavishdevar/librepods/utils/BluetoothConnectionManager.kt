@@ -20,7 +20,7 @@ package me.kavishdevar.librepods.utils
 
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
-import android.util.Log
+import timber.log.Timber
 
 object BluetoothConnectionManager {
     private const val TAG = "BluetoothConnectionManager"
@@ -31,7 +31,7 @@ object BluetoothConnectionManager {
     fun setCurrentConnection(socket: BluetoothSocket, device: BluetoothDevice) {
         currentSocket = socket
         currentDevice = device
-        Log.d(TAG, "Current connection set to device: ${device.address}")
+        Timber.d("Current connection set to device: ${device.address}")
     }
 
     fun getCurrentSocket(): BluetoothSocket? {

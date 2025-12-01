@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -51,20 +52,17 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-@ExperimentalHazeMaterialsApi
 @Composable
 fun MicrophoneSettings(hazeState: HazeState) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -77,58 +75,12 @@ fun MicrophoneSettings(hazeState: HazeState) {
             .background(backgroundColor, RoundedCornerShape(28.dp))
             .padding(top = 2.dp)
     ) {
-        val service = ServiceManager.getService()!!
-        val micModeValue = service.aacpManager.controlCommandStatusList.find {
-            it.identifier == AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE
-        }?.value?.get(0) ?: 0x00.toByte()
-
-        var selectedMode by remember {
-            mutableStateOf(
-                when (micModeValue) {
-                    0x00.toByte() -> "Automatic"
-                    0x01.toByte() -> "Always Right"
-                    0x02.toByte() -> "Always Left"
-                    else -> "Automatic"
-                }
-            )
-        }
+        var selectedMode by remember { mutableStateOf("Automatic") }
         var showDropdown by remember { mutableStateOf(false) }
         var touchOffset by remember { mutableStateOf<Offset?>(null) }
         var boxPosition by remember { mutableStateOf(Offset.Zero) }
         var lastDismissTime by remember { mutableLongStateOf(0L) }
         val reopenThresholdMs = 250L
-
-        val listener = object : AACPManager.ControlCommandListener {
-            override fun onControlCommandReceived(controlCommand: AACPManager.ControlCommand) {
-                if (AACPManager.Companion.ControlCommandIdentifiers.fromByte(controlCommand.identifier) ==
-                    AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE
-                ) {
-                    selectedMode = when (controlCommand.value[0]) {
-                        0x00.toByte() -> "Automatic"
-                        0x01.toByte() -> "Always Right"
-                        0x02.toByte() -> "Always Left"
-                        else -> "Automatic"
-                    }
-                    Log.d("MicrophoneSettings", "Microphone mode received: $selectedMode")
-                }
-            }
-        }
-
-        LaunchedEffect(Unit) {
-            service.aacpManager.registerControlCommandListener(
-                AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE,
-                listener
-            )
-        }
-
-        DisposableEffect(Unit) {
-            onDispose {
-                service.aacpManager.unregisterControlCommandListener(
-                    AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE,
-                    listener
-                )
-            }
-        }
 
         val density = LocalDensity.current
         val itemHeightPx = with(density) { 48.dp.toPx() }
@@ -188,16 +140,6 @@ fun MicrophoneSettings(hazeState: HazeState) {
                                     selectedMode = option
                                     showDropdown = false
                                     lastDismissTime = System.currentTimeMillis()
-                                    val byteValue = when (option) {
-                                        options[0] -> 0x00
-                                        options[1] -> 0x01
-                                        options[2] -> 0x02
-                                        else -> 0x00
-                                    }
-                                    service.aacpManager.sendControlCommand(
-                                        AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE.value,
-                                        byteArrayOf(byteValue.toByte())
-                                    )
                                 }
                             }
                             parentHoveredIndex = null
@@ -213,11 +155,8 @@ fun MicrophoneSettings(hazeState: HazeState) {
         ) {
             Text(
                 text = stringResource(R.string.microphone_mode),
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    color = textColor,
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
+                fontSize = 16.sp,
+                color = textColor,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Box(
@@ -230,19 +169,13 @@ fun MicrophoneSettings(hazeState: HazeState) {
                 ) {
                     Text(
                         text = selectedMode,
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            color = textColor.copy(alpha = 0.8f),
-                            fontFamily = FontFamily(Font(R.font.sf_pro))
-                        )
+                        fontSize = 16.sp,
+                        color = textColor.copy(alpha = 0.8f)
                     )
                     Text(
                         text = "􀆏",
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            color = textColor.copy(alpha = 0.6f),
-                            fontFamily = FontFamily(Font(R.font.sf_pro))
-                        ),
+                        fontSize = 16.sp,
+                        color = textColor.copy(alpha = 0.6f),
                         modifier = Modifier
                             .padding(start = 6.dp)
                     )
@@ -271,16 +204,6 @@ fun MicrophoneSettings(hazeState: HazeState) {
                     onOptionSelected = { option ->
                         selectedMode = option
                         showDropdown = false
-                        val byteValue = when (option) {
-                            microphoneAutomaticText -> 0x00
-                            microphoneAlwaysRightText -> 0x01
-                            microphoneAlwaysLeftText -> 0x02
-                            else -> 0x00
-                        }
-                        service.aacpManager.sendControlCommand(
-                            AACPManager.Companion.ControlCommandIdentifiers.MIC_MODE.value,
-                            byteArrayOf(byteValue.toByte())
-                        )
                     },
                     hazeState = hazeState
                 )
@@ -289,9 +212,12 @@ fun MicrophoneSettings(hazeState: HazeState) {
     }
 }
 
-@ExperimentalHazeMaterialsApi
 @Preview
 @Composable
 fun MicrophoneSettingsPreview() {
-    MicrophoneSettings(HazeState())
+    LibrePodsTheme {
+        Surface {
+            MicrophoneSettings(HazeState())
+        }
+    }
 }

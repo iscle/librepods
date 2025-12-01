@@ -22,53 +22,51 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
-import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
-import me.kavishdevar.librepods.composables.StyledIconButton
-import me.kavishdevar.librepods.composables.StyledScaffold
+import me.kavishdevar.librepods.ui.component.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledSlider
 import me.kavishdevar.librepods.services.ServiceManager
+import me.kavishdevar.librepods.ui.component.StyledTopAppBar
 import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 private var debounceJob: Job? = null
 
 @SuppressLint("DefaultLocale")
-@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalEncodingApi::class)
 @Composable
-fun AdaptiveStrengthScreen(navController: NavController) {
+fun AdaptiveStrengthScreen() {
     val isDarkTheme = isSystemInDarkTheme()
 
-    val sliderValue = remember { mutableFloatStateOf(0f) }
+    var sliderValue by remember { mutableFloatStateOf(0f) }
     val service = ServiceManager.getService()!!
 
     LaunchedEffect(sliderValue) {
         val sliderValueFromAACP = service.aacpManager.controlCommandStatusList.find {
             it.identifier == AACPManager.Companion.ControlCommandIdentifiers.AUTO_ANC_STRENGTH
         }?.value?.takeIf { it.isNotEmpty() }?.get(0)
-        sliderValueFromAACP?.toFloat()?.let { sliderValue.floatValue = (100 - it) }
+        sliderValueFromAACP?.toFloat()?.let { sliderValue = (100 - it) }
     }
 
     val listener = remember {
@@ -76,7 +74,7 @@ fun AdaptiveStrengthScreen(navController: NavController) {
             override fun onControlCommandReceived(controlCommand: AACPManager.ControlCommand) {
                 if (controlCommand.identifier == AACPManager.Companion.ControlCommandIdentifiers.AUTO_ANC_STRENGTH.value) {
                     controlCommand.value.takeIf { it.isNotEmpty() }?.get(0)?.toFloat()?.let {
-                        sliderValue.floatValue = (100 - it)
+                        sliderValue = (100 - it)
                     }
                 }
             }
@@ -99,8 +97,14 @@ fun AdaptiveStrengthScreen(navController: NavController) {
     val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
-        title = stringResource(R.string.customize_adaptive_audio)
-    ) { spacerHeight ->
+        topBar = {
+            StyledTopAppBar(
+                title = {
+                    Text(stringResource(R.string.customize_adaptive_audio))
+                }
+            )
+        },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -108,12 +112,12 @@ fun AdaptiveStrengthScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
+//            Spacer(Modifier.height(spacerHeight))
             StyledSlider(
                 label = stringResource(R.string.customize_adaptive_audio),
-                mutableFloatState = sliderValue,
+                value = sliderValue,
                 onValueChange = {
-                    sliderValue.floatValue = it
+                    sliderValue = it
                     debounceJob?.cancel()
                     debounceJob = CoroutineScope(Dispatchers.Default).launch {
                         delay(300)

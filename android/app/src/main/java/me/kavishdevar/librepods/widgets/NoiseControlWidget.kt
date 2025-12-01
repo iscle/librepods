@@ -27,11 +27,13 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.RemoteViews
+import dagger.hilt.android.AndroidEntryPoint
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.services.ServiceManager
 import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+@AndroidEntryPoint
 class NoiseControlWidget : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,

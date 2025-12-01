@@ -167,7 +167,7 @@ fun ControlCenterNoiseControlSegmentedButton(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(Modifier.height(4.dp))
 
         Row(
             modifier = Modifier
