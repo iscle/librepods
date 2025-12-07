@@ -18,9 +18,9 @@
 
 package me.kavishdevar.librepods.domain.mapper
 
-import me.kavishdevar.librepods.constants.Battery
-import me.kavishdevar.librepods.constants.BatteryComponent
-import me.kavishdevar.librepods.constants.BatteryStatus
+import me.kavishdevar.librepods.data.constants.Battery
+import me.kavishdevar.librepods.data.constants.BatteryComponent
+import me.kavishdevar.librepods.data.constants.BatteryStatus
 import me.kavishdevar.librepods.domain.model.BatteryInfo
 import me.kavishdevar.librepods.domain.model.ComponentBatteryInfo
 

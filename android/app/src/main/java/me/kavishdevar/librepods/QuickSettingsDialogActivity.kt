@@ -16,8 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-@file:OptIn(ExperimentalEncodingApi::class)
-
 package me.kavishdevar.librepods
 
 import android.annotation.SuppressLint
@@ -86,16 +84,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import me.kavishdevar.librepods.composables.AdaptiveRainbowBrush
-import me.kavishdevar.librepods.composables.ControlCenterNoiseControlSegmentedButton
-import me.kavishdevar.librepods.composables.IconAreaSize
-import me.kavishdevar.librepods.composables.VerticalVolumeSlider
-import me.kavishdevar.librepods.constants.AirPodsNotifications
-import me.kavishdevar.librepods.constants.NoiseControlMode
-import me.kavishdevar.librepods.services.AirPodsService
-import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
-import me.kavishdevar.librepods.utils.AACPManager
-import kotlin.io.encoding.ExperimentalEncodingApi
+import me.kavishdevar.librepods.data.constants.AirPodsNotifications
+import me.kavishdevar.librepods.data.constants.NoiseControlMode
+import me.kavishdevar.librepods.presentation.service.AirPodsService
+import me.kavishdevar.librepods.presentation.ui.component.AdaptiveRainbowBrush
+import me.kavishdevar.librepods.presentation.ui.component.ControlCenterNoiseControlSegmentedButton
+import me.kavishdevar.librepods.presentation.ui.component.IconAreaSize
+import me.kavishdevar.librepods.presentation.ui.component.VerticalVolumeSlider
+import me.kavishdevar.librepods.presentation.ui.theme.LibrePodsTheme
+import me.kavishdevar.librepods.util.AACPManager
 import kotlin.math.abs
 
 @AndroidEntryPoint

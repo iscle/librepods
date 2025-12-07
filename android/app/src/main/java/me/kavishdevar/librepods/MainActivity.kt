@@ -28,8 +28,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.content.edit
 import dagger.hilt.android.AndroidEntryPoint
-import me.kavishdevar.librepods.ui.LibrePodsApp
-import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
+import me.kavishdevar.librepods.presentation.ui.LibrePodsApp
+import me.kavishdevar.librepods.presentation.ui.theme.LibrePodsTheme
 import kotlin.io.encoding.Base64
 
 @AndroidEntryPoint

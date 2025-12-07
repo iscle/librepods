@@ -1,7 +1,7 @@
 package me.kavishdevar.librepods.domain.model
 
 data class AirPodsInfo(
-    val isConnected: Boolean = false,
-    val name: String? = null,
-    val model: String? = null,
+    val isConnected: Boolean = true, // TODO: Remove placeholder
+    val name: String? = "AirPods Pro", // TODO: Remove placeholder
+    val model: String? = "A1234", // TODO: Remove placeholder
 )

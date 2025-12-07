@@ -40,7 +40,7 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)
-            optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
+//            optIn.add("androidx.compose.material3.ExperimentalMaterial3Api")
         }
     }
 
@@ -82,8 +82,6 @@ dependencies {
     implementation(libs.annotations)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.haze)
-    implementation(libs.haze.materials)
     implementation(libs.androidx.dynamicanimation)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.foundation.layout)

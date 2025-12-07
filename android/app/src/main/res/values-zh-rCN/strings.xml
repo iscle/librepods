@@ -33,7 +33,7 @@
     <string name="airpods_not_connected">AirPods 未连接</string>
     <string name="airpods_not_connected_description">请连接 AirPods 以访问设置。</string>
     <string name="back">返回</string>
-    <string name="app_settings">自定义</string>
+    <string name="settings">自定义</string>
     <string name="relative_conversational_awareness_volume">相对音量</string>
     <string name="relative_conversational_awareness_volume_description">降低到当前音量的百分比，而不是最大音量。</string>
     <string name="conversational_awareness_pause_music">暂停音乐</string>

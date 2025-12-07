@@ -1,18 +1,17 @@
 [versions]
 accompanistPermissions = "0.37.3"
 agp = "8.13.1"
-backdrop = "1.0.0"
-capsule = "2.1.1"
+backdrop = "1.0.2"
+capsule = "2.1.2"
 hiddenapibypass = "6.1"
 kotlin = "2.2.21"
 coreKtx = "1.17.0"
 lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.0"
-composeBom = "2025.11.01"
+activityCompose = "1.12.1"
+composeBom = "2025.12.00"
 annotations = "26.0.2-1"
 navigationCompose = "2.9.6"
 constraintlayout = "2.2.1"
-haze = "1.7.1"
 dynamicanimation = "1.1.0"
 aboutLibraries = "13.1.0"
 timber = "5.0.1"
@@ -40,8 +39,6 @@ androidx-material-icons = { group = "androidx.compose.material", name = "materia
 annotations = { group = "org.jetbrains", name = "annotations", version.ref = "annotations" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
-haze-materials = { group = "dev.chrisbanes.haze", name = "haze-materials", version.ref = "haze" }
 androidx-dynamicanimation = { group = "androidx.dynamicanimation", name = "dynamicanimation", version.ref = "dynamicanimation" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
